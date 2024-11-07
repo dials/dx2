@@ -2,7 +2,9 @@
 #define INDEXER_SIMPLE_MODELS
 #include <Eigen/Dense>
 #include <math.h>
+#include <nlohmann/json.hpp>
 
+using json = nlohmann::json;
 using Eigen::Matrix3d;
 using Eigen::Vector3d;
 
@@ -36,6 +38,18 @@ public:
     this->mu = mu;
     this->t0 = t0;
     this->parallax_correction = parallax_correction;
+  }
+  SimpleDetector(json detector_data){
+    json p0 = detector_data["panels"][0];
+    Vector3d fast{{p0["fast_axis"][0], p0["fast_axis"][1], p0["fast_axis"][2]}};
+    Vector3d slow{{p0["slow_axis"][0], p0["slow_axis"][1], p0["slow_axis"][2]}};
+    Vector3d origin{{p0["origin"][0], p0["origin"][1], p0["origin"][2]}};
+    Matrix3d d_matrix{{fast[0], slow[0], origin[0]},{fast[1], slow[1], origin[1]},{fast[2], slow[2], origin[2]}};
+    this->d_matrix = d_matrix;
+    this->pixel_size = p0["pixel_size"][0];
+    this->mu = p0["mu"];
+    this->t0 = p0["thickness"];
+    this->parallax_correction = true;
   }
 };
 
