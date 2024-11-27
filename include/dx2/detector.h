@@ -33,6 +33,7 @@ public:
     Panel(json panel_data);
     Matrix3d get_d_matrix() const;
     std::array<double, 2> px_to_mm(double x, double y) const;
+    std::array<double, 2> get_ray_intersection(Vector3d s1) const;
     json to_json() const;
 protected:
     // panel_frame items
@@ -112,6 +113,16 @@ json Panel::to_json() const {
 
 Matrix3d Panel::get_d_matrix() const {
     return d_;
+}
+
+std::array<double, 2> Panel::get_ray_intersection(Vector3d s1) const {
+    Vector3d v = D_ * s1;
+    // assert v[2] > 0
+    std::array<double, 2> pxy;
+    pxy[0] = v[0] / v[2];
+    pxy[1] = v[1] / v[2];
+    // FIXME check is valid
+    return pxy; //in mmm
 }
 
 std::array<double, 2> Panel::px_to_mm(double x, double y) const {
