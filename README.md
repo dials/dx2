@@ -16,11 +16,11 @@ mkdir build
 cd build
 cmake ..
 ```
-You can then build with `make`, and run the test with `./tests/`.
+You can then build with `make`, and run the test with `./tests/test_make_models`.
 
 ## Writing And Running Tests
 
-See https://google.github.io/googletest/primer.html. The `tests/test_make_models` subdirectory
+See https://google.github.io/googletest/primer.html. The `tests` subdirectory
 has an example test.
 
 You can run test executables directly, run `ctest`, or run `make test` (or
