@@ -3,10 +3,10 @@
 #include <math.h>
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
-#include "gemmi/unitcell.hpp"
-#include "gemmi/cellred.hpp"
-#include "gemmi/symmetry.hpp"
-#include "gemmi/math.hpp"
+#include <gemmi/unitcell.hpp>
+#include <gemmi/cellred.hpp>
+#include <gemmi/symmetry.hpp>
+#include <gemmi/math.hpp>
 #include <iostream>
 #include "utils.h"
 
