@@ -5,10 +5,14 @@ env:
 
 jobs:
   build_test:
-    runs-on: ubuntu-latest
+    name: Build/Test
+    strategy:
+      matrix:
+        os: [ubuntu, macOS]
     defaults:
       run:
         shell: bash -l {0}
+    runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
