@@ -22,4 +22,4 @@ jobs:
       - name: Build
         run: mkdir build && cd build && cmake .. && make
       - name: Run tests
-        run: cd build && ctest
+        run: cd build && ctest -L dx2tests --output-on-failure

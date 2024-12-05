@@ -7,6 +7,5 @@ target_link_libraries(test_read_h5_array GTest::gtest_main dx2 hdf5::hdf5)
 
 include(GoogleTest)
 
-gtest_discover_tests(test_make_models)
-gtest_add_tests(TARGET test_read_h5_array WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests" TEST_LIST h5read)
-set_tests_properties(${h5read}   PROPERTIES LABELS Readtests)
+gtest_discover_tests(test_make_models PROPERTIES LABELS dx2tests)
+gtest_discover_tests(test_read_h5_array WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests" PROPERTIES LABELS dx2tests)
