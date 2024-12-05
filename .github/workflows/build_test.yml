@@ -22,4 +22,4 @@ jobs:
       - name: Build
         run: mkdir build && cd build && cmake .. && make
       - name: Run tests
-        run: ./build/tests/test_make_models
+        run: ctest --output-on-failure
