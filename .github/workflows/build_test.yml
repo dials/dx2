@@ -22,4 +22,4 @@ jobs:
       - name: Build
         run: mkdir build && cd build && cmake .. && make
       - name: Run tests
-        run: cd build && make test
+        run: cd build && ctest
