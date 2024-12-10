@@ -16,3 +16,4 @@ target_include_directories(
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(dx2 PUBLIC $<TARGET_NAME_IF_EXISTS:hdf5::hdf5>)
