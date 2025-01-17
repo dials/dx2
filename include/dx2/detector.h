@@ -142,4 +142,37 @@ std::array<double, 2> Panel::px_to_mm(double x, double y) const {
   return std::array<double, 2>{c1,c2};
 }
 
+// Define a simple detector, for now is just a vector of panels without any hierarchy.
+class Detector {
+  public:
+    Detector()=default;
+    Detector(json detector_data);
+    json to_json() const;
+    std::vector<Panel> panels() const;
+
+  protected:
+    std::vector<Panel> _panels{};
+};
+
+Detector::Detector(json detector_data){
+  json panel_data = detector_data["panels"];
+  for (json::iterator it = panel_data.begin(); it !=panel_data.end(); ++it) {
+    _panels.push_back(Panel(*it));
+  }
+}
+
+json Detector::to_json() const {
+  json detector_data;
+  std::vector<json> panels_array;
+  for (auto p = _panels.begin(); p != _panels.end(); ++p){
+    panels_array.push_back(p->to_json());
+  }
+  detector_data["panels"] = panels_array;
+  return detector_data;
+}
+
+std::vector<Panel> Detector::panels() const {
+  return _panels;
+}
+
 #endif // DX2_MODEL_DETECTOR_H

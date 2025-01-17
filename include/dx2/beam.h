@@ -272,5 +272,4 @@ json MonoElectronBeam::to_json() const {
     return MonochromaticBeam::to_json("electron");
 }
 
-
 #endif //DX2_MODEL_BEAM_H
