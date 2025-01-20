@@ -8,9 +8,6 @@ using json = nlohmann::json;
 using Eigen::Matrix3d;
 using Eigen::Vector3d;
 
-// End goal would be to separate everything out by detector panel on data
-// as well as model side?
-
 double attenuation_length(double mu, double t0,
                                    Vector3d s1,
                                    Vector3d fast,
@@ -27,7 +24,10 @@ double attenuation_length(double mu, double t0,
 }
 
 class Panel {
-// A class to represent a single-panel detector i.e. non-hierarchical
+// A class to represent a single "panel" of a detector (i.e. what data are
+// considered to be described by a single set of panel parameters for the
+// purposes of data processing, which may consist of several real detector
+// modules).
 public:
     Panel()=default;
     Panel(json panel_data);

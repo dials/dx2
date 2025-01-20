@@ -6,6 +6,19 @@
 using Eigen::Vector3d;
 using json = nlohmann::json;
 
+/*
+This file defines a set of Beam classes.
+
+BeamBase defines most of the class attributes except the wavelength.
+
+The two subclasses are MonochromaticBeam and PolychromaticBeam,
+which define a single wavelength or wavelength range respectively.
+
+MonochromaticBeam is subclassed further into MonoXrayBeam and
+MonoElectronBeam, these simply set the correct probe name
+when serializing/deserializing to/from json.
+*/
+
 class BeamBase {
 // A base class for beam objects
 public:
