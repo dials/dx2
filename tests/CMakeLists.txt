@@ -8,8 +8,12 @@ target_link_libraries(test_read_h5_array GTest::gtest_main dx2 hdf5::hdf5)
 add_executable(test_write_h5_array test_write_h5_array.cxx)
 target_link_libraries(test_write_h5_array GTest::gtest_main dx2 hdf5::hdf5)
 
+add_executable(test_tensor test_tensor.cxx)
+target_link_libraries(test_tensor GTest::gtest_main dx2)
+
 include(GoogleTest)
 
 gtest_discover_tests(test_make_models PROPERTIES LABELS dx2tests)
 gtest_discover_tests(test_read_h5_array WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tests" PROPERTIES LABELS dx2tests)
 gtest_discover_tests(test_write_h5_array WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tests" PROPERTIES LABELS dx2tests)
+gtest_discover_tests(test_tensor PROPERTIES LABELS dx2tests)
