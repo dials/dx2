@@ -3,6 +3,7 @@ add_library(
     h5write.cxx
     h5read_processed.cxx
     #tensor.cxx
+    reflection.cxx
 )
 target_link_libraries(
     dx2
