@@ -1,8 +1,8 @@
 add_library(
     dx2
     h5write.cxx
+    h5read_processed.cxx
     #tensor.cxx
-    
 )
 target_link_libraries(
     dx2
