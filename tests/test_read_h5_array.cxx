@@ -141,3 +141,98 @@ TEST_F(HDF5ReadTest, ReadWithIncorrectType) {
 }
 
 #pragma endregion read_array_from_h5_file tests
+// --------------- Discovery tests ---------------
+#pragma region Discovery tests
+
+TEST_F(HDF5ReadTest, DiscoverH5Datasets) {
+  // Discover all datasets in the test HDF5 file
+  std::vector<std::string> datasets = discover_datasets(test_file_path);
+
+  // Print the discovered datasets
+  for (size_t i = 0; i < datasets.size(); ++i) {
+    std::cout << "Dataset " << i << ": " << datasets[i] << std::endl;
+  }
+
+  // Expected dataset paths
+  std::vector<std::string> expected_datasets = {
+      {"/dials/processing/empty_dataset"}, // Empty set added by tests
+      {"/dials/processing/group_0/bbox"},
+      {"/dials/processing/group_0/flags"},
+      {"/dials/processing/group_0/id"},
+      {"/dials/processing/group_0/intensity.sum.value"},
+      {"/dials/processing/group_0/intensity.sum.variance"},
+      {"/dials/processing/group_0/n_signal"},
+      {"/dials/processing/group_0/panel"},
+      {"/dials/processing/group_0/xyzobs.px.value"},
+      {"/dials/processing/group_0/xyzobs.px.variance"},
+      {"/nx_reflections/group_0/bounding_box"},
+      {"/nx_reflections/group_0/det_module"},
+      {"/nx_reflections/group_0/flags"},
+      {"/nx_reflections/group_0/id"},
+      {"/nx_reflections/group_0/int_sum"},
+      {"/nx_reflections/group_0/int_sum_var"},
+      {"/nx_reflections/group_0/observed_frame"},
+      {"/nx_reflections/group_0/observed_frame_var"},
+      {"/nx_reflections/group_0/observed_px_x"},
+      {"/nx_reflections/group_0/observed_px_x_var"},
+      {"/nx_reflections/group_0/observed_px_y"},
+      {"/nx_reflections/group_0/observed_px_y_var"}};
+
+  // Check that all expected datasets exist
+  for (const auto &expected_path : expected_datasets) {
+    auto it = std::find(datasets.begin(), datasets.end(), expected_path);
+    EXPECT_NE(it, datasets.end()) << "Dataset not found: " << expected_path;
+  }
+
+  // Ensure no extra datasets are present
+  EXPECT_EQ(datasets.size(), expected_datasets.size());
+}
+
+TEST_F(HDF5ReadTest, DiscoverH5DatasetsWithNonExistentFile) {
+  std::string invalid_file = "invalid_file.h5";
+
+  EXPECT_THROW(discover_datasets(invalid_file), std::runtime_error);
+}
+
+TEST_F(HDF5ReadTest, DiscoverH5DatasetsInGroup) {
+  std::string group_name = "/dials/processing/group_0";
+
+  // Discover all datasets in the test HDF5 file
+  std::vector<std::string> datasets =
+      get_datasets_in_group(test_file_path, group_name);
+
+  // Print the discovered datasets
+  for (size_t i = 0; i < datasets.size(); ++i) {
+    std::cout << "Dataset " << i << ": " << datasets[i] << std::endl;
+  }
+
+  // Expected dataset paths
+  std::vector<std::string> expected_datasets = {
+      {"/dials/processing/group_0/bbox"},
+      {"/dials/processing/group_0/flags"},
+      {"/dials/processing/group_0/id"},
+      {"/dials/processing/group_0/intensity.sum.value"},
+      {"/dials/processing/group_0/intensity.sum.variance"},
+      {"/dials/processing/group_0/n_signal"},
+      {"/dials/processing/group_0/panel"},
+      {"/dials/processing/group_0/xyzobs.px.value"},
+      {"/dials/processing/group_0/xyzobs.px.variance"}};
+
+  // Check that all expected datasets exist
+  for (const auto &expected_path : expected_datasets) {
+    auto it = std::find(datasets.begin(), datasets.end(), expected_path);
+    EXPECT_NE(it, datasets.end()) << "Dataset not found: " << expected_path;
+  }
+
+  // Ensure no extra datasets are present
+  EXPECT_EQ(datasets.size(), expected_datasets.size());
+}
+
+TEST_F(HDF5ReadTest, GetDatasetName) {
+  std::string full_path = "/some/long/path/to/dataset";
+  std::string dataset_name = get_dataset_name(full_path);
+
+  EXPECT_EQ(dataset_name, "dataset");
+}
+
+#pragma endregion Discovery tests

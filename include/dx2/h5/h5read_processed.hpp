@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -31,3 +32,29 @@ std::vector<T> read_array_from_h5_file(const std::string &filename,
   read_array_from_h5_file(filename, dataset_name, h5_data);
   return h5_data.data;
 }
+
+/**
+ * @brief Discovers all datasets in an HDF5 file.
+ *
+ * @param filename The path to the HDF5 file.
+ * @return A vector containing the dataset paths.
+ */
+std::vector<std::string> discover_datasets(const std::string &filename);
+
+/**
+ * @brief Discovers all datasets in a group in an HDF5 file.
+ *
+ * @param filename The path to the HDF5 file.
+ * @param group_name The name of the group to search.
+ * @return A vector containing the dataset paths.
+ */
+std::vector<std::string> get_datasets_in_group(const std::string &filename,
+                                               const std::string &group_name);
+
+/**
+ * @brief Extracts the dataset name from a full path.
+ *
+ * @param path The full path to the dataset.
+ * @return The name of the dataset.
+ */
+std::string get_dataset_name(const std::string &path);
