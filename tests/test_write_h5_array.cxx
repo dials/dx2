@@ -230,3 +230,39 @@ TEST_F(HDF5Test, WriteToExistingDataset) {
 }
 
 #pragma endregion write_h5 tests
+// --------------- write_h5 TESTS (Base Function Tests) ---------------
+#pragma region write_h5 base function tests
+
+TEST_F(HDF5Test, WriteOneDimensionalVector_Explicit) {
+  std::string dataset_path = "/base/group_1/dataset_1d";
+  std::vector<double> data = {1.0, 2.0, 3.0, 4.0};
+  std::vector<hsize_t> shape = {data.size()};
+
+  write_data_to_h5_file(test_file_path, dataset_path, data, shape);
+  EXPECT_EQ(read_array_from_h5_file<double>(test_file_path, dataset_path),
+            data);
+}
+
+TEST_F(HDF5Test, WriteTwoDimensionalVector_Explicit) {
+  std::string dataset_path = "/base/group_2/dataset_2d";
+  std::vector<std::vector<double>> data = {{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}};
+
+  std::vector<double> flat_data = flatten(data);
+  std::vector<hsize_t> shape = deduce_shape(data);
+
+  write_data_to_h5_file(test_file_path, dataset_path, flat_data, shape);
+  EXPECT_EQ(read_array_from_h5_file<double>(test_file_path, dataset_path),
+            flat_data);
+}
+
+TEST_F(HDF5Test, WriteEmptyDataset_Explicit) {
+  std::string dataset_path = "/base/group_empty/dataset_empty";
+  std::vector<double> data = {};
+  std::vector<hsize_t> shape = {0};
+
+  write_data_to_h5_file(test_file_path, dataset_path, data, shape);
+  EXPECT_TRUE(
+      read_array_from_h5_file<double>(test_file_path, dataset_path).empty());
+}
+
+#pragma endregion write_h5 base function tests

@@ -50,13 +50,11 @@ hid_t traverse_or_create_groups(hid_t parent, const std::string &path) {
   return final_group;
 }
 
-template <typename Container>
 void write_data_to_h5_file(const std::string &filename,
                            const std::string &dataset_path,
-                           const Container &data) {
-  // Open or create the HDF5 file
-  H5Eset_auto2(H5E_DEFAULT, NULL, NULL); // Suppress errors to stdout when
-  // trying to open a file/group that may not exist.
+                           const std::vector<double> &data,
+                           const std::vector<hsize_t> &shape) {
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
   if (file < 0) {
     file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -79,12 +77,6 @@ void write_data_to_h5_file(const std::string &filename,
 
     // Traverse or create the groups leading to the dataset
     hid_t group = traverse_or_create_groups(file, group_path);
-
-    // Deduce the shape of the data
-    std::vector<hsize_t> shape = deduce_shape(data);
-
-    // Flatten the data into a 1D vector
-    auto flat_data = flatten(data);
 
     // Check if dataset exists
     hid_t dataset = H5Dopen(group, dataset_name.c_str(), H5P_DEFAULT);
@@ -125,7 +117,7 @@ void write_data_to_h5_file(const std::string &filename,
 
     // Write the data to the dataset
     herr_t status = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,
-                             H5P_DEFAULT, flat_data.data());
+                             H5P_DEFAULT, data.data());
     if (status < 0) {
       H5Dclose(dataset);
       throw std::runtime_error("Error: Unable to write data to dataset: " +
@@ -142,6 +134,16 @@ void write_data_to_h5_file(const std::string &filename,
 
   // Close the file
   H5Fclose(file);
+}
+
+template <typename Container>
+void write_data_to_h5_file(const std::string &filename,
+                           const std::string &dataset_path,
+                           const Container &data) {
+  std::vector<hsize_t> shape = deduce_shape(data);
+  auto flat_data = flatten(data);
+
+  write_data_to_h5_file(filename, dataset_path, flat_data, shape);
 }
 
 #pragma endregion Implementation

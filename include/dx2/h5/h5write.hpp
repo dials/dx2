@@ -107,10 +107,31 @@ template <typename Container> auto flatten(const Container &container) {
 }
 
 /**
+ * @brief Writes flattened data with an explicitly provided shape to an HDF5
+ * file.
+ *
+ * This function writes a dataset to an HDF5 file using a given shape.
+ * It is intended for cases where the shape is already known and does not need
+ * to be deduced.
+ *
+ * @param filename The path to the HDF5 file.
+ * @param dataset_path The full path to the dataset, including group
+ * hierarchies.
+ * @param data The flattened data vector to write.
+ * @param shape The shape of the dataset.
+ * @throws std::runtime_error If the dataset cannot be created or data cannot be
+ * written.
+ */
+void write_data_to_h5_file(const std::string &filename,
+                           const std::string &dataset_path,
+                           const std::vector<double> &data,
+                           const std::vector<hsize_t> &shape);
+
+/**
  * @brief Writes multidimensional data to an HDF5 file.
  *
- * This function writes a dataset to an HDF5 file. The dataset's shape
- * is determined dynamically based on the input container.
+ * This overload function automatically deduces the shape of the input data
+ * and flattens it before writing to the HDF5 file.
  *
  * @tparam Container The type of the container holding the data.
  * @param filename The path to the HDF5 file.
