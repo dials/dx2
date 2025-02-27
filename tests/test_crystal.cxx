@@ -6,11 +6,11 @@ using Eigen::Vector3d;
 
 // Test that we can correctly construct a crystal
 // A useful test that gemmi & Eigen is installed correctly too.
-TEST(ExampleTests, CrystalTest) {
+TEST(ModelTests, CrystalTest) {
   // Initialise a crystal
   Vector3d a = {10.0, 1.0, 2.0};
-  Vector3d b = {1, 20.0, 4};
-  Vector3d c = {2.0, 2, 5.0};
+  Vector3d b = {1.0, 20.0, 4.0};
+  Vector3d c = {2.0, 2.0, 5.0};
   gemmi::SpaceGroup space_group = *gemmi::find_spacegroup_by_name("P1");
   Crystal crystal(a, b, c, space_group);
 
