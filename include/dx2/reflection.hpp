@@ -1,13 +1,14 @@
 #pragma once
 
 #include "dx2/h5/h5read_processed.hpp"
-#include "dx2/tensor.hpp"
+#include <experimental/mdspan>
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+namespace stdex = std::experimental;
 class ReflectionTable {
 public:
   /**
@@ -35,16 +36,14 @@ public:
    */
   template <typename T>
   void add_table(const std::string &table_group, const std::vector<T> data,
-                 const std::vector<size_t> shape,
-                 Layout layout = Layout::RowMajor) {
+                 const std::vector<size_t> shape) {
     dataset_map_[table_group] =
-        std::make_unique<Tensor<T>>(shape, data, layout);
+        std::make_unique<H5Data<T>>(std::move(data), shape);
   }
 
   template <typename T>
   void add_table(const std::string &table_group, H5Data<T> h5_data) {
-    dataset_map_[table_group] = std::make_unique<Tensor<T>>(
-        h5_data.shape, std::move(h5_data.data), Layout::RowMajor);
+    dataset_map_[table_group] = std::make_unique<H5Data<T>>(std::move(h5_data));
   }
 
   /**
@@ -67,20 +66,20 @@ public:
   std::vector<double> column(size_t) const;
 
 private:
-  /// Dataset path -> Tensor mapping
-  std::unordered_map<std::string, std::unique_ptr<BaseTensor>> dataset_map_;
   std::string h5_filepath_;
+  /// Dataset path -> Data mapping
+  std::unordered_map<std::string, std::unique_ptr<BaseH5Data>> dataset_map_;
+  const std::string REFL_GROUP = "/dials/processing/group_0";
 
   /**
    * @brief Loads data from the HDF5 file into the reflection table.
    */
   void load_data() {
-    std::vector<std::string> dataset_paths = discover_datasets(h5_filepath_);
-    for (const auto &path : dataset_paths) {
-      // std::string dataset_name = get_dataset_name(path);
-      H5Data<double> h5_data;
-      read_array_from_h5_file(h5_filepath_, path, h5_data);
-      add_table(path, h5_data);
+    std::vector<std::string> datasets =
+        get_datasets_in_group(h5_filepath_, REFL_GROUP);
+    for (const auto &dataset : datasets) {
+      auto data = read_dataset_from_h5_file(h5_filepath_, dataset);
+      dataset_map_[dataset] = std::move(data);
     }
   }
 };

@@ -3,17 +3,13 @@
 #include <chrono>
 #include <hdf5.h>
 #include <iostream>
-#include <map>
-#include <string>
 #include <unordered_set>
-#include <vector>
 
 #pragma region Implementation
 
-template <typename T>
-void read_array_from_h5_file(const std::string &filename,
-                             const std::string &dataset_name,
-                             H5Data<T> &h5_data) {
+std::unique_ptr<BaseH5Data>
+read_dataset_from_h5_file(const std::string &filename,
+                          const std::string &dataset_name) {
   auto start_time = std::chrono::high_resolution_clock::now();
 
   hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -31,79 +27,40 @@ void read_array_from_h5_file(const std::string &filename,
 
     try {
       hid_t dataspace = H5Dget_space(dataset);
-      if (dataspace < 0) {
-        H5Dclose(dataset);
-        H5Fclose(file);
-        throw std::runtime_error(
-            "Error: Unable to get dataspace for dataset: " + dataset_name);
-      }
-
       int ndims = H5Sget_simple_extent_ndims(dataspace);
       if (ndims < 0) {
-        H5Sclose(dataspace);
-        H5Dclose(dataset);
-        H5Fclose(file);
         throw std::runtime_error("Error: Unable to get dataset rank.");
       }
 
+      std::vector<size_t> shape(ndims);
       std::vector<hsize_t> dims(ndims);
       H5Sget_simple_extent_dims(dataspace, dims.data(), nullptr);
+      std::copy(dims.begin(), dims.end(), shape.begin());
 
-      h5_data.shape.assign(dims.begin(), dims.end());
       size_t num_elements = H5Sget_simple_extent_npoints(dataspace);
-      h5_data.data.resize(num_elements);
 
-      // Determine HDF5 type mapping
-      hid_t native_type;
-      if constexpr (std::is_same_v<T, int>) {
-        native_type = H5T_NATIVE_INT;
-      } else if constexpr (std::is_same_v<T, float>) {
-        native_type = H5T_NATIVE_FLOAT;
-      } else if constexpr (std::is_same_v<T, double>) {
-        native_type = H5T_NATIVE_DOUBLE;
-      } else if constexpr (std::is_same_v<T, size_t>) {
-        native_type =
-            H5T_NATIVE_ULONG; // or H5T_NATIVE_UINT64, depending on system
-      } else {
-        H5Sclose(dataspace);
-        H5Dclose(dataset);
-        H5Fclose(file);
-        throw std::runtime_error("Unsupported data type for HDF5 reading.");
-      }
-
-      // Validate dataset type before reading
+      // **Detect dataset type and create correct H5Data<T>**
       hid_t dataset_type = H5Dget_type(dataset);
-      if (H5Tequal(dataset_type, native_type) == 0) {
+
+      if (H5Tequal(dataset_type, H5T_NATIVE_INT)) {
+        H5Tclose(dataset_type);
+        return read_dataset_from_h5_file_t<int>(dataset, dataspace,
+                                                num_elements, shape);
+      } else if (H5Tequal(dataset_type, H5T_NATIVE_FLOAT)) {
+        H5Tclose(dataset_type);
+        return read_dataset_from_h5_file_t<float>(dataset, dataspace,
+                                                  num_elements, shape);
+      } else if (H5Tequal(dataset_type, H5T_NATIVE_DOUBLE)) {
+        H5Tclose(dataset_type);
+        return read_dataset_from_h5_file_t<double>(dataset, dataspace,
+                                                   num_elements, shape);
+      } else {
         H5Tclose(dataset_type);
         H5Sclose(dataspace);
         H5Dclose(dataset);
         H5Fclose(file);
-        throw std::runtime_error(
-            "Error: Dataset type does not match requested type.");
+        throw std::runtime_error("Error: Unsupported dataset type.");
       }
-      H5Tclose(dataset_type);
-
-      // Read dataset
-      herr_t status = H5Dread(dataset, native_type, H5S_ALL, H5S_ALL,
-                              H5P_DEFAULT, h5_data.data.data());
-      if (status < 0) {
-        H5Sclose(dataspace);
-        H5Dclose(dataset);
-        H5Fclose(file);
-        throw std::runtime_error("Error: Unable to read dataset: " +
-                                 dataset_name);
-      }
-
-      // Cleanup
-      H5Sclose(dataspace);
-      H5Dclose(dataset);
-      H5Fclose(file);
-
-      auto end_time = std::chrono::high_resolution_clock::now();
-      double elapsed_time =
-          std::chrono::duration<double>(end_time - start_time).count();
-      std::cout << "READ TIME for " << dataset_name << " : " << elapsed_time
-                << "s" << std::endl;
 
     } catch (...) {
       H5Dclose(dataset);
@@ -114,6 +71,38 @@ void read_array_from_h5_file(const std::string &filename,
     H5Fclose(file);
     throw;
   }
+}
+
+/**
+ * @brief Reads a dataset of type `T`.
+ */
+template <typename T>
+H5Data<T> read_dataset_from_h5_file_t(hid_t dataset, hid_t dataspace,
+                                      size_t num_elements,
+                                      const std::vector<size_t> &shape) {
+  std::vector<T> data(num_elements);
+
+  hid_t native_type;
+  if constexpr (std::is_same_v<T, int>) {
+    native_type = H5T_NATIVE_INT;
+  } else if constexpr (std::is_same_v<T, float>) {
+    native_type = H5T_NATIVE_FLOAT;
+  } else if constexpr (std::is_same_v<T, double>) {
+    native_type = H5T_NATIVE_DOUBLE;
+  }
+
+  herr_t status =
+      H5Dread(dataset, native_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.data());
+  if (status < 0) {
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    throw std::runtime_error("Error: Unable to read dataset.");
+  }
+
+  H5Sclose(dataspace);
+  H5Dclose(dataset);
+
+  return H5Data<T>(std::move(data), shape);
 }
 
 // Forward declaration
@@ -253,15 +242,16 @@ std::string get_dataset_name(const std::string &path) {
  * generate the necessary code used in the tests
  */
 
-template void read_array_from_h5_file<int>(const std::string &filename,
-                                           const std::string &dataset_name,
-                                           H5Data<int> &h5_data);
-template void read_array_from_h5_file<double>(const std::string &filename,
-                                              const std::string &dataset_name,
-                                              H5Data<double> &h5_data);
-template void
-read_array_from_h5_file<unsigned long>(const std::string &filename,
-                                       const std::string &dataset_name,
-                                       H5Data<unsigned long> &h5_data);
+// template void read_array_from_h5_file<int>(const std::string &filename,
+//                                            const std::string &dataset_name,
+//                                            H5Data<int> &h5_data);
+// template void read_array_from_h5_file<double>(const std::string &filename,
+//                                               const std::string
+//                                               &dataset_name, H5Data<double>
+//                                               &h5_data);
+// template void
+// read_array_from_h5_file<unsigned long>(const std::string &filename,
+//                                        const std::string &dataset_name,
+//                                        H5Data<unsigned long> &h5_data);
 
 #pragma endregion Explicit template instantiation
