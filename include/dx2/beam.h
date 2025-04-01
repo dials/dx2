@@ -2,7 +2,7 @@
 #define DX2_MODEL_BEAM_H
 #include <Eigen/Dense>
 #include <nlohmann/json.hpp>
-
+#include <memory>
 using Eigen::Vector3d;
 using json = nlohmann::json;
 
@@ -22,6 +22,7 @@ when serializing/deserializing to/from json.
 class BeamBase {
   // A base class for beam objects
 public:
+  virtual ~BeamBase() = default;
   BeamBase() = default;
   BeamBase(Vector3d direction, double divergence, double sigma_divergence,
            Vector3d polarization_normal, double polarization_fraction,
@@ -299,6 +300,31 @@ json MonoXrayBeam::to_json() const {
 json MonoElectronBeam::to_json() const {
   // call the parent function with the correct probe name
   return MonochromaticBeam::to_json("electron");
+}
+
+std::shared_ptr<BeamBase> make_beam(json beam_data){
+  if (beam_data.find("wavelength") != beam_data.end()){
+    return std::make_shared<MonochromaticBeam>(beam_data);
+  }
+  else if (beam_data.find("wavelength_range") != beam_data.end()){
+    return std::make_shared<PolychromaticBeam>(beam_data);
+  }
+  else {
+    throw std::invalid_argument("Unknown beam type");
+  }
+}
+
+json make_beam_json(std::shared_ptr<BeamBase> beamptr){
+  // first try to cast to mono
+  MonochromaticBeam* monobeam = dynamic_cast<MonochromaticBeam*>(beamptr.get());
+  if (monobeam != nullptr){
+    return (*monobeam).to_json();
+  }
+  PolychromaticBeam* polybeam = dynamic_cast<PolychromaticBeam*>(beamptr.get());
+  if (polybeam != nullptr){
+    return (*polybeam).to_json();
+  }
+  throw std::runtime_error("Unable to cast base beam pointer for json creation");
 }
 
 #endif // DX2_MODEL_BEAM_H

@@ -7,34 +7,34 @@
 #include <dx2/goniometer.h>
 #include <dx2/scan.h>
 #include <nlohmann/json.hpp>
-
+#include <memory>
 using Eigen::Vector3d;
 using json = nlohmann::json;
 
-template <class BeamType> class Experiment {
+class Experiment {
 public:
   Experiment() = default;
   Experiment(json experiment_data);
   json to_json() const;
   Goniometer goniometer() const;
-  BeamType beam() const;
+  std::shared_ptr<BeamBase> beam() const;
   Scan scan() const;
   Detector detector() const;
   Crystal crystal() const;
   void set_crystal(Crystal crystal);
 
 protected:
-  BeamType _beam{};
+  std::shared_ptr<BeamBase> _beam{};
   Scan _scan{};
   Goniometer _goniometer{};
   Detector _detector{};
   Crystal _crystal{};
 };
 
-template <class BeamType>
-Experiment<BeamType>::Experiment(json experiment_data) {
+
+Experiment::Experiment(json experiment_data) {
   json beam_data = experiment_data["beam"][0];
-  BeamType beam = BeamType(beam_data);
+  std::shared_ptr<BeamBase> beam = make_beam(beam_data);
   json scan_data = experiment_data["scan"][0];
   Scan scan(scan_data);
   json gonio_data = experiment_data["goniometer"][0];
@@ -54,7 +54,7 @@ Experiment<BeamType>::Experiment(json experiment_data) {
   }
 }
 
-template <class BeamType> json Experiment<BeamType>::to_json() const {
+json Experiment::to_json() const {
   // save this experiment as an example experiment list
   json elist_out; // a list of potentially multiple experiments
   elist_out["__id__"] = "ExperimentList";
@@ -71,7 +71,7 @@ template <class BeamType> json Experiment<BeamType>::to_json() const {
   // add the the actual models
   elist_out["scan"] = std::array<json, 1>{_scan.to_json()};
   elist_out["goniometer"] = std::array<json, 1>{_goniometer.to_json()};
-  elist_out["beam"] = std::array<json, 1>{_beam.to_json()};
+  elist_out["beam"] = std::array<json, 1>{make_beam_json(_beam)};
   elist_out["detector"] = std::array<json, 1>{_detector.to_json()};
 
   if (_crystal.get_U_matrix().determinant()) {
@@ -85,28 +85,27 @@ template <class BeamType> json Experiment<BeamType>::to_json() const {
   return elist_out;
 }
 
-template <class BeamType> Scan Experiment<BeamType>::scan() const {
+Scan Experiment::scan() const {
   return _scan;
 }
 
-template <class BeamType> Goniometer Experiment<BeamType>::goniometer() const {
+Goniometer Experiment::goniometer() const {
   return _goniometer;
 }
 
-template <class BeamType> Detector Experiment<BeamType>::detector() const {
+Detector Experiment::detector() const {
   return _detector;
 }
 
-template <class BeamType> Crystal Experiment<BeamType>::crystal() const {
+Crystal Experiment::crystal() const {
   return _crystal;
 }
 
-template <class BeamType>
-void Experiment<BeamType>::set_crystal(Crystal crystal) {
+void Experiment::set_crystal(Crystal crystal) {
   _crystal = crystal;
 }
 
-template <class BeamType> BeamType Experiment<BeamType>::beam() const {
+std::shared_ptr<BeamBase> Experiment::beam() const {
   return _beam;
 }
 
