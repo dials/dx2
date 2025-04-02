@@ -6,8 +6,8 @@
 #include <dx2/detector.h>
 #include <dx2/goniometer.h>
 #include <dx2/scan.h>
-#include <nlohmann/json.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 using Eigen::Vector3d;
 using json = nlohmann::json;
 
@@ -30,7 +30,6 @@ protected:
   Detector _detector{};
   Crystal _crystal{};
 };
-
 
 Experiment::Experiment(json experiment_data) {
   json beam_data = experiment_data["beam"][0];
@@ -85,28 +84,16 @@ json Experiment::to_json() const {
   return elist_out;
 }
 
-Scan Experiment::scan() const {
-  return _scan;
-}
+Scan Experiment::scan() const { return _scan; }
 
-Goniometer Experiment::goniometer() const {
-  return _goniometer;
-}
+Goniometer Experiment::goniometer() const { return _goniometer; }
 
-Detector Experiment::detector() const {
-  return _detector;
-}
+Detector Experiment::detector() const { return _detector; }
 
-Crystal Experiment::crystal() const {
-  return _crystal;
-}
+Crystal Experiment::crystal() const { return _crystal; }
 
-void Experiment::set_crystal(Crystal crystal) {
-  _crystal = crystal;
-}
+void Experiment::set_crystal(Crystal crystal) { _crystal = crystal; }
 
-std::shared_ptr<BeamBase> Experiment::beam() const {
-  return _beam;
-}
+std::shared_ptr<BeamBase> Experiment::beam() const { return _beam; }
 
 #endif // DX2_MODEL_EXPERIMENT_H
