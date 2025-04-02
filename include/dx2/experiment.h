@@ -17,7 +17,8 @@ public:
   Experiment(json experiment_data);
   json to_json() const;
   Goniometer goniometer() const;
-  std::shared_ptr<BeamBase> beam() const;
+  template <typename BeamType>
+  BeamType& get_beam() const;
   Scan scan() const;
   Detector detector() const;
   Crystal crystal() const;
@@ -94,6 +95,14 @@ Crystal Experiment::crystal() const { return _crystal; }
 
 void Experiment::set_crystal(Crystal crystal) { _crystal = crystal; }
 
-std::shared_ptr<BeamBase> Experiment::beam() const { return _beam; }
+template <typename BeamType>
+BeamType& Experiment::get_beam() const {
+  BeamType* beam = dynamic_cast<BeamType*>(_beam.get());
+  if (beam == nullptr){
+    std::cerr << "Unable to return beam type " + std::string(typeid(BeamType).name()) + " (beam type is " + std::string(typeid(*_beam.get()).name())+ ")"<<std::endl;
+    std::exit(1);
+  }
+  return *beam;
+}
 
 #endif // DX2_MODEL_EXPERIMENT_H
