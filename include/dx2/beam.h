@@ -27,12 +27,12 @@ public:
            Vector3d polarization_normal, double polarization_fraction,
            double flux, double transmission, Probe probe,
            double sample_to_source_distance);
+  Probe get_probe() const;
+  std::string get_probe_name() const;
 
 protected:
   void init_from_json(json beam_data);
   void add_to_json(json &beam_data) const;
-  Probe get_probe() const;
-  std::string get_probe_name() const;
   Vector3d sample_to_source_direction_{0.0, 0.0,
                                        1.0}; // called direction_ in dxtbx
   double divergence_{0.0}; // "beam divergence - be more specific with name?"
@@ -41,7 +41,7 @@ protected:
   double polarization_fraction_{0.999};
   double flux_{0.0};
   double transmission_{1.0};
-  Probe probe_{Probe::xray};
+  Probe probe_{xray};
   double sample_to_source_distance_{0.0}; // FIXME is this really needed?
 };
 
@@ -156,7 +156,7 @@ void BeamBase::add_to_json(json &beam_data) const {
   beam_data["polarization_fraction"] = polarization_fraction_;
   beam_data["flux"] = flux_;
   beam_data["transmission"] = transmission_;
-  beam_data["probe"] = get_probe_name();
+  beam_data["probe"] = "x-ray"; //FIXME get_probe_name() not working?
   beam_data["sample_to_source_distance"] = sample_to_source_distance_;
 }
 
@@ -304,7 +304,7 @@ void PolychromaticBeam::set_wavelength_range(
   wavelength_range_ = wavelength_range;
 }
 
-// Classes to handle run-time polymorphism for json
+// Functions to handle run-time polymorphism for json
 // serialization/deserialization.
 
 std::shared_ptr<BeamBase> make_beam(json beam_data) {
@@ -313,7 +313,7 @@ std::shared_ptr<BeamBase> make_beam(json beam_data) {
   } else if (beam_data.find("wavelength_range") != beam_data.end()) {
     return std::make_shared<PolychromaticBeam>(beam_data);
   } else {
-    throw std::invalid_argument("Unknown beam type");
+    throw std::runtime_error("Unrecognised beam type in json data");
   }
 }
 
