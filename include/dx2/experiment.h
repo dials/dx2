@@ -15,7 +15,8 @@ class Experiment {
 public:
   Experiment() = default;
   Experiment(json experiment_data);
-  Experiment(std::shared_ptr<BeamBase> beam, Scan scan, Goniometer gonio, Detector detector);
+  Experiment(std::shared_ptr<BeamBase> beam, Scan scan, Goniometer gonio,
+             Detector detector);
   json to_json() const;
   Goniometer goniometer() const;
   std::shared_ptr<BeamBase> beam() const;
@@ -32,15 +33,13 @@ protected:
   Crystal _crystal{};
 };
 
-Experiment::Experiment(std::shared_ptr<BeamBase> beam,
-                       Scan scan,
-                       Goniometer gonio,
-                       Detector detector){
-    this->_beam = beam;
-    this->_scan = scan;
-    this->_goniometer = gonio;
-    this->_detector = detector;
-  }
+Experiment::Experiment(std::shared_ptr<BeamBase> beam, Scan scan,
+                       Goniometer gonio, Detector detector) {
+  this->_beam = beam;
+  this->_scan = scan;
+  this->_goniometer = gonio;
+  this->_detector = detector;
+}
 
 Experiment::Experiment(json experiment_data) {
   json beam_data = experiment_data["beam"][0];
@@ -107,51 +106,61 @@ Crystal Experiment::crystal() const { return _crystal; }
 
 void Experiment::set_crystal(Crystal crystal) { _crystal = crystal; }
 
+template <typename BeamType> class TypedExperiment {
+public:
+  TypedExperiment(BeamType &beam, Scan scan, Goniometer gonio,
+                  Detector detector);
+  BeamType &get_beam() const;
+  Scan scan() const;
+  Detector detector() const;
+  Goniometer goniometer() const;
+  Crystal crystal() const;
+  void set_crystal(Crystal crystal);
+  json to_json() const;
 
-template<typename BeamType> class TypedExperiment {
-  public:
-    TypedExperiment(BeamType& beam, Scan scan, Goniometer gonio, Detector detector);
-    BeamType& get_beam() const;
-    Scan scan() const;
-    Detector detector() const;
-    Goniometer goniometer() const;
-    Crystal crystal() const;
-    void set_crystal(Crystal crystal);
-    json to_json() const;
-
-  private:
-    BeamType& _beam;
-    Scan _scan;
-    Goniometer _goniometer;
-    Detector _detector;
-    Crystal _crystal;
+private:
+  BeamType &_beam;
+  Scan _scan;
+  Goniometer _goniometer;
+  Detector _detector;
+  Crystal _crystal;
 };
 
-template<typename BeamType>
-TypedExperiment<BeamType>::TypedExperiment(BeamType& beam, Scan scan, Goniometer gonio, Detector detector) : _beam(beam), _scan(scan), _goniometer(gonio), _detector(detector){}
+template <typename BeamType>
+TypedExperiment<BeamType>::TypedExperiment(BeamType &beam, Scan scan,
+                                           Goniometer gonio, Detector detector)
+    : _beam(beam), _scan(scan), _goniometer(gonio), _detector(detector) {}
 
-template<typename BeamType>
-BeamType& TypedExperiment<BeamType>::get_beam() const {
+template <typename BeamType>
+BeamType &TypedExperiment<BeamType>::get_beam() const {
   return _beam;
 }
 
-template<typename BeamType>
-Scan TypedExperiment<BeamType>::scan() const { return _scan; }
+template <typename BeamType> Scan TypedExperiment<BeamType>::scan() const {
+  return _scan;
+}
 
-template<typename BeamType>
-Goniometer TypedExperiment<BeamType>::goniometer() const { return _goniometer; }
+template <typename BeamType>
+Goniometer TypedExperiment<BeamType>::goniometer() const {
+  return _goniometer;
+}
 
-template<typename BeamType>
-Detector TypedExperiment<BeamType>::detector() const { return _detector; }
+template <typename BeamType>
+Detector TypedExperiment<BeamType>::detector() const {
+  return _detector;
+}
 
-template<typename BeamType>
-Crystal TypedExperiment<BeamType>::crystal() const { return _crystal; }
+template <typename BeamType>
+Crystal TypedExperiment<BeamType>::crystal() const {
+  return _crystal;
+}
 
-template<typename BeamType>
-void TypedExperiment<BeamType>::set_crystal(Crystal crystal) { _crystal = crystal; }
+template <typename BeamType>
+void TypedExperiment<BeamType>::set_crystal(Crystal crystal) {
+  _crystal = crystal;
+}
 
-template<typename BeamType>
-json TypedExperiment<BeamType>::to_json() const {
+template <typename BeamType> json TypedExperiment<BeamType>::to_json() const {
   // save this experiment as an example experiment list
   json elist_out; // a list of potentially multiple experiments
   elist_out["__id__"] = "ExperimentList";
@@ -182,17 +191,17 @@ json TypedExperiment<BeamType>::to_json() const {
   return elist_out;
 }
 
-
-
 // factory function to make a typed experiment
-template<typename BeamType>
-TypedExperiment<BeamType> make_typed_experiment(json experiment_data){ // can add other types e.g. detector, scan
+template <typename BeamType>
+TypedExperiment<BeamType> make_typed_experiment(
+    json experiment_data) { // can add other types e.g. detector, scan
   json beam_data = experiment_data["beam"][0];
-  std::shared_ptr<BeamBase> beamptr = make_beam(beam_data); // may raise std::runtime_error
+  std::shared_ptr<BeamBase> beamptr =
+      make_beam(beam_data); // may raise std::runtime_error
 
   // Make sure we can cast to the requested types.
-  BeamType* converted = dynamic_cast<BeamType*>(beamptr.get());
-  if (converted == nullptr){
+  BeamType *converted = dynamic_cast<BeamType *>(beamptr.get());
+  if (converted == nullptr) {
     throw std::runtime_error("Unable to make requested beam type");
   }
   json scan_data = experiment_data["scan"][0];

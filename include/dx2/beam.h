@@ -156,7 +156,7 @@ void BeamBase::add_to_json(json &beam_data) const {
   beam_data["polarization_fraction"] = polarization_fraction_;
   beam_data["flux"] = flux_;
   beam_data["transmission"] = transmission_;
-  beam_data["probe"] = "x-ray"; //FIXME get_probe_name() not working?
+  beam_data["probe"] = "x-ray"; // FIXME get_probe_name() not working?
   beam_data["sample_to_source_distance"] = sample_to_source_distance_;
 }
 
