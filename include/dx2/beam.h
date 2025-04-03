@@ -1,8 +1,8 @@
 #ifndef DX2_MODEL_BEAM_H
 #define DX2_MODEL_BEAM_H
 #include <Eigen/Dense>
+#include <memory>
 #include <nlohmann/json.hpp>
-
 using Eigen::Vector3d;
 using json = nlohmann::json;
 
@@ -14,22 +14,25 @@ BeamBase defines most of the class attributes except the wavelength.
 The two subclasses are MonochromaticBeam and PolychromaticBeam,
 which define a single wavelength or wavelength range respectively.
 
-MonochromaticBeam is subclassed further into MonoXrayBeam and
-MonoElectronBeam, these simply set the correct probe name
-when serializing/deserializing to/from json.
 */
+
+enum Probe { xray = 1, electron = 2, neutron = 3 };
 
 class BeamBase {
   // A base class for beam objects
 public:
+  virtual ~BeamBase() = default;
   BeamBase() = default;
   BeamBase(Vector3d direction, double divergence, double sigma_divergence,
            Vector3d polarization_normal, double polarization_fraction,
-           double flux, double transmission, double sample_to_source_distance);
+           double flux, double transmission, Probe probe,
+           double sample_to_source_distance);
+  Probe get_probe() const;
+  std::string get_probe_name() const;
 
 protected:
   void init_from_json(json beam_data);
-  void add_to_json(json beam_data) const;
+  void add_to_json(json &beam_data) const;
   Vector3d sample_to_source_direction_{0.0, 0.0,
                                        1.0}; // called direction_ in dxtbx
   double divergence_{0.0}; // "beam divergence - be more specific with name?"
@@ -38,6 +41,7 @@ protected:
   double polarization_fraction_{0.999};
   double flux_{0.0};
   double transmission_{1.0};
+  Probe probe_{xray};
   double sample_to_source_distance_{0.0}; // FIXME is this really needed?
 };
 
@@ -50,9 +54,10 @@ public:
   MonochromaticBeam(double wavelength, Vector3d direction, double divergence,
                     double sigma_divergence, Vector3d polarization_normal,
                     double polarization_fraction, double flux,
-                    double transmission, double sample_to_source_distance);
+                    double transmission, Probe probe,
+                    double sample_to_source_distance);
   MonochromaticBeam(json beam_data);
-  json to_json(std::string probe) const;
+  json to_json() const;
   double get_wavelength() const;
   void set_wavelength(double wavelength);
   Vector3d get_s0() const;
@@ -60,24 +65,6 @@ public:
 
 protected:
   double wavelength_{0.0};
-};
-
-class MonoXrayBeam : public MonochromaticBeam {
-  // Same as the parent class, except explicitly set a probe type when calling
-  // to_json
-  using MonochromaticBeam::MonochromaticBeam;
-
-public:
-  json to_json() const;
-};
-
-class MonoElectronBeam : public MonochromaticBeam {
-  // Same as the parent class, except explicitly set a probe type when calling
-  // to_json
-  using MonochromaticBeam::MonochromaticBeam;
-
-public:
-  json to_json() const;
 };
 
 class PolychromaticBeam : public BeamBase {
@@ -89,10 +76,10 @@ public:
   PolychromaticBeam(std::array<double, 2> wavelength_range, Vector3d direction,
                     double divergence, double sigma_divergence,
                     Vector3d polarization_normal, double polarization_fraction,
-                    double flux, double transmission,
+                    double flux, double transmission, Probe probe,
                     double sample_to_source_distance);
   PolychromaticBeam(json beam_data);
-  json to_json(std::string probe) const;
+  json to_json() const;
   std::array<double, 2> get_wavelength_range() const;
   void set_wavelength_range(std::array<double, 2> wavelength_range);
 
@@ -106,12 +93,13 @@ protected:
 BeamBase::BeamBase(Vector3d direction, double divergence,
                    double sigma_divergence, Vector3d polarization_normal,
                    double polarization_fraction, double flux,
-                   double transmission, double sample_to_source_distance)
+                   double transmission, Probe probe,
+                   double sample_to_source_distance)
     : sample_to_source_direction_{direction}, divergence_{divergence},
       sigma_divergence_{sigma_divergence},
       polarization_normal_{polarization_normal},
       polarization_fraction_{polarization_fraction}, flux_{flux},
-      transmission_{transmission},
+      transmission_{transmission}, probe_{probe},
       sample_to_source_distance_{sample_to_source_distance} {}
 
 void BeamBase::init_from_json(json beam_data) {
@@ -144,12 +132,22 @@ void BeamBase::init_from_json(json beam_data) {
   if (beam_data.find("transmission") != beam_data.end()) {
     transmission_ = beam_data["transmission"];
   }
+  if (beam_data.find("probe") != beam_data.end()) {
+    std::string probe = beam_data["probe"];
+    if (probe == "x-ray") {
+      probe_ = Probe::xray;
+    } else if (probe == "neutron") {
+      probe_ = Probe::neutron;
+    } else if (probe == "electron") {
+      probe_ = Probe::electron;
+    }
+  }
   if (beam_data.find("sample_to_source_distance") != beam_data.end()) {
     sample_to_source_distance_ = beam_data["sample_to_source_distance"];
   }
 }
 
-void BeamBase::add_to_json(json beam_data) const {
+void BeamBase::add_to_json(json &beam_data) const {
   // Add the members to the json object to prepare for serialization.
   beam_data["direction"] = sample_to_source_direction_;
   beam_data["divergence"] = divergence_;
@@ -158,7 +156,25 @@ void BeamBase::add_to_json(json beam_data) const {
   beam_data["polarization_fraction"] = polarization_fraction_;
   beam_data["flux"] = flux_;
   beam_data["transmission"] = transmission_;
+  beam_data["probe"] = "x-ray"; // FIXME get_probe_name() not working?
   beam_data["sample_to_source_distance"] = sample_to_source_distance_;
+}
+
+Probe BeamBase::get_probe() const { return probe_; }
+
+std::string BeamBase::get_probe_name() const {
+  // Return a name that matches NeXus definitions from
+  // https://manual.nexusformat.org/classes/base_classes/NXsource.html
+  switch (probe_) {
+  case xray:
+    return std::string("x-ray");
+  case electron:
+    return std::string("electron");
+  case neutron:
+    return std::string("neutron");
+  default:
+    throw std::runtime_error("Unknown probe type");
+  }
 }
 
 // MonochromaticBeam definitions
@@ -168,7 +184,7 @@ MonochromaticBeam::MonochromaticBeam(double wavelength, Vector3d direction,
                                      double divergence, double sigma_divergence,
                                      Vector3d polarization_normal,
                                      double polarization_fraction, double flux,
-                                     double transmission,
+                                     double transmission, Probe probe,
                                      double sample_to_source_distance)
     : BeamBase{direction,
                divergence,
@@ -177,6 +193,7 @@ MonochromaticBeam::MonochromaticBeam(double wavelength, Vector3d direction,
                polarization_fraction,
                flux,
                transmission,
+               probe,
                sample_to_source_distance},
       wavelength_{wavelength} {}
 
@@ -204,9 +221,9 @@ MonochromaticBeam::MonochromaticBeam(json beam_data) {
 }
 
 // serialize to json format
-json MonochromaticBeam::to_json(std::string probe = "x-ray") const {
+json MonochromaticBeam::to_json() const {
   // create a json object that conforms to a dials model serialization.
-  json beam_data = {{"__id__", "monochromatic"}, {"probe", probe}};
+  json beam_data = {{"__id__", "monochromatic"}};
   beam_data["wavelength"] = wavelength_;
   add_to_json(beam_data);
   return beam_data;
@@ -234,7 +251,7 @@ PolychromaticBeam::PolychromaticBeam(std::array<double, 2> wavelength_range,
                                      double sigma_divergence,
                                      Vector3d polarization_normal,
                                      double polarization_fraction, double flux,
-                                     double transmission,
+                                     double transmission, Probe probe,
                                      double sample_to_source_distance)
     : BeamBase{direction,
                divergence,
@@ -243,6 +260,7 @@ PolychromaticBeam::PolychromaticBeam(std::array<double, 2> wavelength_range,
                polarization_fraction,
                flux,
                transmission,
+               probe,
                sample_to_source_distance},
       wavelength_range_{wavelength_range} {}
 
@@ -270,9 +288,9 @@ PolychromaticBeam::PolychromaticBeam(json beam_data) {
 }
 
 // serialize to json format
-json PolychromaticBeam::to_json(std::string probe = "x-ray") const {
+json PolychromaticBeam::to_json() const {
   // create a json object that conforms to a dials model serialization.
-  json beam_data = {{"__id__", "polychromatic"}, {"probe", probe}};
+  json beam_data = {{"__id__", "polychromatic"}};
   beam_data["wavelength_range"] = wavelength_range_;
   add_to_json(beam_data);
   return beam_data;
@@ -286,19 +304,33 @@ void PolychromaticBeam::set_wavelength_range(
   wavelength_range_ = wavelength_range;
 }
 
-// MonoXrayBeam definitions
+// Functions to handle run-time polymorphism for json
+// serialization/deserialization.
 
-json MonoXrayBeam::to_json() const {
-  // call the parent function with the correct probe name (which is the same as
-  // the default in this case)
-  return MonochromaticBeam::to_json("x-ray");
+std::shared_ptr<BeamBase> make_beam(json beam_data) {
+  if (beam_data.find("wavelength") != beam_data.end()) {
+    return std::make_shared<MonochromaticBeam>(beam_data);
+  } else if (beam_data.find("wavelength_range") != beam_data.end()) {
+    return std::make_shared<PolychromaticBeam>(beam_data);
+  } else {
+    throw std::runtime_error("Unrecognised beam type in json data");
+  }
 }
 
-// MonoElectronBeam definitions
-
-json MonoElectronBeam::to_json() const {
-  // call the parent function with the correct probe name
-  return MonochromaticBeam::to_json("electron");
+json make_beam_json(std::shared_ptr<BeamBase> beamptr) {
+  // first try to cast to mono
+  MonochromaticBeam *monobeam =
+      dynamic_cast<MonochromaticBeam *>(beamptr.get());
+  if (monobeam != nullptr) {
+    return (*monobeam).to_json();
+  }
+  PolychromaticBeam *polybeam =
+      dynamic_cast<PolychromaticBeam *>(beamptr.get());
+  if (polybeam != nullptr) {
+    return (*polybeam).to_json();
+  }
+  throw std::runtime_error(
+      "Unable to cast base beam pointer for json creation");
 }
 
 #endif // DX2_MODEL_BEAM_H
