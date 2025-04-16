@@ -120,13 +120,13 @@ void Crystal::niggli_reduce() {
   U_ = A_ * B_.inverse();
 }
 
-void Crystal::set_A_matrix(Matrix3d A){
+void Crystal::set_A_matrix(Matrix3d A) {
   // input in reciprocal units
   A_ = A;
   Matrix3d Areal = A.inverse();
-  Vector3d a{Areal(0,0), Areal(0,1), Areal(0,2)};
-  Vector3d b{Areal(1,0), Areal(1,1), Areal(1,2)};
-  Vector3d c{Areal(2,0), Areal(2,1), Areal(2,2)};
+  Vector3d a{Areal(0, 0), Areal(0, 1), Areal(0, 2)};
+  Vector3d b{Areal(1, 0), Areal(1, 1), Areal(1, 2)};
+  Vector3d c{Areal(2, 0), Areal(2, 1), Areal(2, 2)};
   double real_space_a = a.norm();
   double real_space_b = b.norm();
   double real_space_c = c.norm();
