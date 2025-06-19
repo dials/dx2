@@ -32,6 +32,12 @@ public:
   std::array<double, 2> px_to_mm(double x, double y) const;
   std::array<double, 2> get_ray_intersection(Vector3d s1) const;
   json to_json() const;
+  Vector3d get_origin() const;
+  Vector3d get_fast_axis() const;
+  Vector3d get_slow_axis() const;
+  Vector3d get_normal() const;
+  std::array<double, 2> get_image_size_mm() const;
+  double get_directed_distance() const;
 
 protected:
   // panel_frame items
@@ -59,6 +65,25 @@ protected:
   std::string pixel_to_mm_strategy_{"SimplePxMmStrategy"}; // just the name here
   bool parallax_correction_ = false;
 };
+
+Vector3d Panel::get_origin() const {
+  return origin_;
+}
+Vector3d Panel::get_fast_axis() const {
+  return fast_axis_;
+}
+Vector3d Panel::get_slow_axis() const {
+  return slow_axis_;
+}
+Vector3d Panel::get_normal() const {
+  return normal_;
+}
+std::array<double, 2> Panel::get_image_size_mm() const {
+  return {image_size_[0] * pixel_size_[0], image_size_[1] * pixel_size_[1]};
+}
+double Panel::get_directed_distance() const {
+  return origin_.dot(normal_);
+}
 
 Panel::Panel(json panel_data) {
   Vector3d fast{{panel_data["fast_axis"][0], panel_data["fast_axis"][1],
