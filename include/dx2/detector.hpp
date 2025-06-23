@@ -38,6 +38,7 @@ public:
   Vector3d get_normal() const;
   std::array<double, 2> get_image_size_mm() const;
   double get_directed_distance() const;
+  void update(Matrix3d d);
 
 protected:
   // panel_frame items
@@ -83,6 +84,14 @@ std::array<double, 2> Panel::get_image_size_mm() const {
 }
 double Panel::get_directed_distance() const {
   return origin_.dot(normal_);
+}
+void Panel::update(Matrix3d d) {
+  d_ = d;
+  D_ = d_.inverse();
+  fast_axis_ = {d(0,0), d(1,0), d(2,0)};
+  slow_axis_ = {d(0,1), d(1,1), d(2,1)};
+  origin_ = {d(0,2), d(1,2), d(2,2)};
+  normal_ = fast_axis_.cross(slow_axis_);
 }
 
 Panel::Panel(json panel_data) {
@@ -177,6 +186,7 @@ public:
   Detector(json detector_data);
   json to_json() const;
   std::vector<Panel> panels() const;
+  void update(Matrix3d d);
 
 protected:
   std::vector<Panel> _panels{};
@@ -200,5 +210,9 @@ json Detector::to_json() const {
 }
 
 std::vector<Panel> Detector::panels() const { return _panels; }
+
+void Detector::update(Matrix3d d) {
+  _panels[0].update(d);
+}
 
 #endif // DX2_MODEL_DETECTOR_H

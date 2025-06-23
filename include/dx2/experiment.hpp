@@ -19,7 +19,7 @@ public:
   const Goniometer &goniometer() const;
   const BeamType &beam() const;
   Scan &scan();
-  const Detector &detector() const;
+  Detector &detector();
   const Crystal &crystal() const;
   void set_crystal(Crystal crystal);
 
@@ -93,7 +93,7 @@ const Goniometer &Experiment<BeamType>::goniometer() const {
 }
 
 template <class BeamType>
-const Detector &Experiment<BeamType>::detector() const {
+Detector &Experiment<BeamType>::detector() {
   return _detector;
 }
 
