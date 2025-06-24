@@ -26,6 +26,7 @@ public:
   BeamBase(Vector3d direction, double divergence, double sigma_divergence,
            Vector3d polarization_normal, double polarization_fraction,
            double flux, double transmission, double sample_to_source_distance);
+  Vector3d get_polarization_normal() const;
 
 protected:
   void init_from_json(json beam_data);
@@ -159,6 +160,10 @@ void BeamBase::add_to_json(json beam_data) const {
   beam_data["flux"] = flux_;
   beam_data["transmission"] = transmission_;
   beam_data["sample_to_source_distance"] = sample_to_source_distance_;
+}
+
+Vector3d BeamBase::get_polarization_normal() const {
+  return polarization_normal_;
 }
 
 // MonochromaticBeam definitions
