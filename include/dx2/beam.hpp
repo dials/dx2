@@ -57,7 +57,7 @@ public:
   double get_wavelength() const;
   void set_wavelength(double wavelength);
   Vector3d get_s0() const;
-  void set_s0(Vector3d s0);
+  void set_s0(Vector3d const s0);
 
 protected:
   double wavelength_{0.0};
@@ -225,7 +225,7 @@ void MonochromaticBeam::set_wavelength(double wavelength) {
 Vector3d MonochromaticBeam::get_s0() const {
   return -sample_to_source_direction_ / wavelength_;
 }
-void MonochromaticBeam::set_s0(Vector3d s0) {
+void MonochromaticBeam::set_s0(const Vector3d s0) {
   double len = s0.norm();
   wavelength_ = 1.0 / len;
   sample_to_source_direction_ = -1.0 * s0 / len;

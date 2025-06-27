@@ -17,7 +17,7 @@ public:
   Experiment(json experiment_data);
   json to_json() const;
   const Goniometer &goniometer() const;
-  const BeamType &beam() const;
+  BeamType &beam();
   Scan &scan();
   Detector &detector();
   const Crystal &crystal() const;
@@ -106,7 +106,7 @@ void Experiment<BeamType>::set_crystal(Crystal crystal) {
   _crystal = crystal;
 }
 
-template <class BeamType> const BeamType &Experiment<BeamType>::beam() const {
+template <class BeamType> BeamType &Experiment<BeamType>::beam() {
   return _beam;
 }
 
