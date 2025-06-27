@@ -29,6 +29,7 @@ protected:
   Goniometer _goniometer{};
   Detector _detector{};
   Crystal _crystal{};
+  json _imageset_json{};
 };
 
 template <class BeamType>
@@ -45,6 +46,9 @@ Experiment<BeamType>::Experiment(json experiment_data) {
   this->_scan = scan;
   this->_goniometer = gonio;
   this->_detector = detector;
+  // Save the imageset json to propagate when saving to file.
+  json imageset_data = experiment_data["imageset"][0];
+  this->_imageset_json = imageset_data;
   try { // We don't always have a crystal model e.g. before indexing.
     json crystal_data = experiment_data["crystal"][0];
     Crystal crystal(crystal_data);
@@ -67,12 +71,14 @@ template <class BeamType> json Experiment<BeamType>::to_json() const {
   expt_out["detector"] = 0;
   expt_out["goniometer"] = 0;
   expt_out["scan"] = 0;
+  expt_out["imageset"] = 0;
 
   // add the the actual models
   elist_out["scan"] = std::array<json, 1>{_scan.to_json()};
   elist_out["goniometer"] = std::array<json, 1>{_goniometer.to_json()};
   elist_out["beam"] = std::array<json, 1>{_beam.to_json()};
   elist_out["detector"] = std::array<json, 1>{_detector.to_json()};
+  elist_out["imageset"] = std::array<json, 1>{_imageset_json};
 
   if (_crystal.get_U_matrix().determinant()) {
     expt_out["crystal"] = 0;

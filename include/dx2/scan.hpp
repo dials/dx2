@@ -70,7 +70,9 @@ json Scan::to_json() const {
   for (int i = 0; i < num_images_; i++) {
     oscillation_array[i] = oscillation_start_ + oscillation_width_ * i;
   }
-  scan_data["properties"] = {"oscillation", oscillation_array};
+  json properties;
+  properties["oscillation"] = oscillation_array;
+  scan_data["properties"] = properties;
   // FIXME for dials compatibility, do we need exposure times and epochs arrays,
   // also valid_image_ranges empty dict?
   return scan_data;
