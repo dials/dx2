@@ -16,12 +16,14 @@ public:
   Experiment() = default;
   Experiment(json experiment_data);
   json to_json() const;
+  const std::string &identifier() const;
   const Goniometer &goniometer() const;
   BeamType &beam();
   Scan &scan();
   Detector &detector();
   const Crystal &crystal() const;
   void set_crystal(Crystal crystal);
+  void set_identifier(std::string identifier);
 
 protected:
   BeamType _beam{};
@@ -30,10 +32,12 @@ protected:
   Detector _detector{};
   Crystal _crystal{};
   json _imageset_json{};
+  std::string _identifier{};
 };
 
 template <class BeamType>
 Experiment<BeamType>::Experiment(json experiment_data) {
+  std::string identifier = experiment_data["experiment"][0]["identifier"];
   json beam_data = experiment_data["beam"][0];
   BeamType beam = BeamType(beam_data);
   json scan_data = experiment_data["scan"][0];
@@ -42,6 +46,7 @@ Experiment<BeamType>::Experiment(json experiment_data) {
   Goniometer gonio(gonio_data);
   json detector_data = experiment_data["detector"][0];
   Detector detector(detector_data);
+  this->_identifier = identifier;
   this->_beam = beam;
   this->_scan = scan;
   this->_goniometer = gonio;
@@ -65,7 +70,7 @@ template <class BeamType> json Experiment<BeamType>::to_json() const {
   json expt_out; // our single experiment
   // no imageset (for now?).
   expt_out["__id__"] = "Experiment";
-  expt_out["identifier"] = "test";
+  expt_out["identifier"] = _identifier;
   expt_out["beam"] =
       0; // the indices of the models that will correspond to our experiment
   expt_out["detector"] = 0;
@@ -114,6 +119,14 @@ void Experiment<BeamType>::set_crystal(Crystal crystal) {
 
 template <class BeamType> BeamType &Experiment<BeamType>::beam() {
   return _beam;
+}
+
+template <class BeamType> const std::string &Experiment<BeamType>::identifier() const {
+  return _identifier;
+}
+template <class BeamType>
+void Experiment<BeamType>::set_identifier(std::string identifier) {
+  _identifier = identifier;
 }
 
 #endif // DX2_MODEL_EXPERIMENT_H
