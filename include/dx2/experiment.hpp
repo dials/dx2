@@ -103,8 +103,7 @@ const Goniometer &Experiment<BeamType>::goniometer() const {
   return _goniometer;
 }
 
-template <class BeamType>
-Detector &Experiment<BeamType>::detector() {
+template <class BeamType> Detector &Experiment<BeamType>::detector() {
   return _detector;
 }
 
@@ -121,7 +120,8 @@ template <class BeamType> BeamType &Experiment<BeamType>::beam() {
   return _beam;
 }
 
-template <class BeamType> const std::string &Experiment<BeamType>::identifier() const {
+template <class BeamType>
+const std::string &Experiment<BeamType>::identifier() const {
   return _identifier;
 }
 template <class BeamType>

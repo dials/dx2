@@ -30,7 +30,7 @@ public:
 
 protected:
   void init_from_json(json beam_data);
-  void add_to_json(json& beam_data) const;
+  void add_to_json(json &beam_data) const;
   Vector3d sample_to_source_direction_{0.0, 0.0,
                                        1.0}; // called direction_ in dxtbx
   double divergence_{0.0}; // "beam divergence - be more specific with name?"
@@ -150,7 +150,7 @@ void BeamBase::init_from_json(json beam_data) {
   }
 }
 
-void BeamBase::add_to_json(json& beam_data) const {
+void BeamBase::add_to_json(json &beam_data) const {
   // Add the members to the json object to prepare for serialization.
   beam_data["direction"] = sample_to_source_direction_;
   beam_data["divergence"] = divergence_;

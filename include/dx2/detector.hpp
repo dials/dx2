@@ -67,30 +67,20 @@ protected:
   bool parallax_correction_ = false;
 };
 
-Vector3d Panel::get_origin() const {
-  return origin_;
-}
-Vector3d Panel::get_fast_axis() const {
-  return fast_axis_;
-}
-Vector3d Panel::get_slow_axis() const {
-  return slow_axis_;
-}
-Vector3d Panel::get_normal() const {
-  return normal_;
-}
+Vector3d Panel::get_origin() const { return origin_; }
+Vector3d Panel::get_fast_axis() const { return fast_axis_; }
+Vector3d Panel::get_slow_axis() const { return slow_axis_; }
+Vector3d Panel::get_normal() const { return normal_; }
 std::array<double, 2> Panel::get_image_size_mm() const {
   return {image_size_[0] * pixel_size_[0], image_size_[1] * pixel_size_[1]};
 }
-double Panel::get_directed_distance() const {
-  return origin_.dot(normal_);
-}
+double Panel::get_directed_distance() const { return origin_.dot(normal_); }
 void Panel::update(Matrix3d d) {
   d_ = d;
   D_ = d_.inverse();
-  fast_axis_ = {d(0,0), d(1,0), d(2,0)};
-  slow_axis_ = {d(0,1), d(1,1), d(2,1)};
-  origin_ = {d(0,2), d(1,2), d(2,2)};
+  fast_axis_ = {d(0, 0), d(1, 0), d(2, 0)};
+  slow_axis_ = {d(0, 1), d(1, 1), d(2, 1)};
+  origin_ = {d(0, 2), d(1, 2), d(2, 2)};
   normal_ = fast_axis_.cross(slow_axis_);
 }
 
@@ -211,8 +201,6 @@ json Detector::to_json() const {
 
 std::vector<Panel> Detector::panels() const { return _panels; }
 
-void Detector::update(Matrix3d d) {
-  _panels[0].update(d);
-}
+void Detector::update(Matrix3d d) { _panels[0].update(d); }
 
 #endif // DX2_MODEL_DETECTOR_H
