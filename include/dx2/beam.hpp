@@ -26,10 +26,11 @@ public:
   BeamBase(Vector3d direction, double divergence, double sigma_divergence,
            Vector3d polarization_normal, double polarization_fraction,
            double flux, double transmission, double sample_to_source_distance);
+  Vector3d get_polarization_normal() const;
 
 protected:
   void init_from_json(json beam_data);
-  void add_to_json(json beam_data) const;
+  void add_to_json(json &beam_data) const;
   Vector3d sample_to_source_direction_{0.0, 0.0,
                                        1.0}; // called direction_ in dxtbx
   double divergence_{0.0}; // "beam divergence - be more specific with name?"
@@ -56,7 +57,7 @@ public:
   double get_wavelength() const;
   void set_wavelength(double wavelength);
   Vector3d get_s0() const;
-  void set_s0(Vector3d s0);
+  void set_s0(Vector3d const s0);
 
 protected:
   double wavelength_{0.0};
@@ -149,7 +150,7 @@ void BeamBase::init_from_json(json beam_data) {
   }
 }
 
-void BeamBase::add_to_json(json beam_data) const {
+void BeamBase::add_to_json(json &beam_data) const {
   // Add the members to the json object to prepare for serialization.
   beam_data["direction"] = sample_to_source_direction_;
   beam_data["divergence"] = divergence_;
@@ -159,6 +160,10 @@ void BeamBase::add_to_json(json beam_data) const {
   beam_data["flux"] = flux_;
   beam_data["transmission"] = transmission_;
   beam_data["sample_to_source_distance"] = sample_to_source_distance_;
+}
+
+Vector3d BeamBase::get_polarization_normal() const {
+  return polarization_normal_;
 }
 
 // MonochromaticBeam definitions
@@ -220,7 +225,7 @@ void MonochromaticBeam::set_wavelength(double wavelength) {
 Vector3d MonochromaticBeam::get_s0() const {
   return -sample_to_source_direction_ / wavelength_;
 }
-void MonochromaticBeam::set_s0(Vector3d s0) {
+void MonochromaticBeam::set_s0(const Vector3d s0) {
   double len = s0.norm();
   wavelength_ = 1.0 / len;
   sample_to_source_direction_ = -1.0 * s0 / len;
