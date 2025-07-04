@@ -68,10 +68,14 @@ endif()
 
 # #######################################################################
 # Targets
-enable_testing()
 
 add_subdirectory(dx2)
-add_subdirectory(tests)
+
+# Don't build testing if we are a subproject
+if(CMAKE_CURRENT_SOURCE_DIR EQUAL CMAKE_SOURCE_DIR)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # #######################################################################
 # Installation
