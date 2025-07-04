@@ -82,8 +82,9 @@ endif()
 install(
     TARGETS dx2
     EXPORT DX2Targets
-    LIBRARY DESTINATION lib
+    LIBRARY COMPONENT Runtime
 )
+
 # install(
 #     FILES
 #     include/dx2/dx2.h
