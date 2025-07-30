@@ -38,10 +38,10 @@ double attenuation_length(double mu, double t0, Vector3d s1, Vector3d fast,
  * @param origin Detector origin vector r₀
  * @return Corrected mm coordinates (x',y') ready for pixel conversion
  */
-std::array<double, 2> parallax_correction_mm_to_px(double mu, double t0,
-                                                   std::array<double, 2> xy,
-                                                   Vector3d fast, Vector3d slow,
-                                                   Vector3d origin) {
+std::array<double, 2> parallax_correction(double mu, double t0,
+                                          std::array<double, 2> xy,
+                                          Vector3d fast, Vector3d slow,
+                                          Vector3d origin) {
   // Construct ray direction: s₁ = r₀ + x·f̂ + y·ŝ
   Vector3d ray_direction = origin + xy[0] * fast + xy[1] * slow;
 
@@ -227,8 +227,8 @@ std::array<double, 2> Panel::mm_to_px(double x, double y) const {
     Vector3d fast = d_.col(0);   // Fast axis direction
     Vector3d slow = d_.col(1);   // Slow axis direction
     Vector3d origin = d_.col(2); // Panel origin position
-    mm_coord = parallax_correction_mm_to_px(mu_, thickness_, mm_coord, fast,
-                                            slow, origin);
+    mm_coord =
+        parallax_correction(mu_, thickness_, mm_coord, fast, slow, origin);
   }
 
   // Convert mm to pixels by dividing by pixel size
