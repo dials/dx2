@@ -20,6 +20,47 @@ double attenuation_length(double mu, double t0, Vector3d s1, Vector3d fast,
   return (1.0 / mu) - (t0 / cos_t + 1.0 / mu) * exp(-mu * t0 / cos_t);
 }
 
+/**
+ * Apply parallax correction to mm coordinates for conversion back to pixels.
+ * This is the reverse of the parallax correction applied in px_to_mm.
+ *
+ * Given mm coordinates (x,y), construct the ray direction:
+ * s₁ = origin + x·fast + y·slow, then normalize |s₁| = 1
+ *
+ * Calculate attenuation length: o = f(μ, t₀, s₁)
+ * Apply correction: x' = x + (s₁·fast)·o, y' = y + (s₁·slow)·o
+ *
+ * @param mu Linear attenuation coefficient μ (mm⁻¹)
+ * @param t0 Sensor thickness t₀ (mm)
+ * @param xy The (x,y) mm coordinate to correct
+ * @param fast Detector fast direction vector f̂
+ * @param slow Detector slow direction vector ŝ
+ * @param origin Detector origin vector r₀
+ * @return Corrected mm coordinates (x',y') ready for pixel conversion
+ */
+std::array<double, 2> parallax_correction_mm_to_px(double mu, double t0,
+                                                   std::array<double, 2> xy,
+                                                   Vector3d fast, Vector3d slow,
+                                                   Vector3d origin) {
+  // Construct ray direction: s₁ = r₀ + x·f̂ + y·ŝ
+  Vector3d ray_direction = origin + xy[0] * fast + xy[1] * slow;
+
+  // Normalize to unit vector: |s₁| = 1
+  ray_direction.normalize();
+
+  // Calculate attenuation length using sensor physics
+  double attenuation_offset =
+      attenuation_length(mu, t0, ray_direction, fast, slow, origin);
+
+  // Apply parallax correction:
+  // x' = x + (s₁·f̂)·o  (correction along fast axis)
+  // y' = y + (s₁·ŝ)·o  (correction along slow axis)
+  double corrected_x = xy[0] + (ray_direction.dot(fast)) * attenuation_offset;
+  double corrected_y = xy[1] + (ray_direction.dot(slow)) * attenuation_offset;
+
+  return std::array<double, 2>{corrected_x, corrected_y};
+}
+
 class Panel {
   // A class to represent a single "panel" of a detector (i.e. what data are
   // considered to be described by a single set of panel parameters for the
@@ -30,7 +71,10 @@ public:
   Panel(json panel_data);
   Matrix3d get_d_matrix() const;
   std::array<double, 2> px_to_mm(double x, double y) const;
+  std::array<double, 2> mm_to_px(double x, double y) const;
+  std::array<double, 2> mm_to_px_simple(double x, double y) const;
   std::array<double, 2> get_ray_intersection(Vector3d s1) const;
+  std::array<double, 2> get_pixel_size() const;
   json to_json() const;
   Vector3d get_origin() const;
   Vector3d get_fast_axis() const;
@@ -167,6 +211,55 @@ std::array<double, 2> Panel::px_to_mm(double x, double y) const {
   double c2 = x2 - (s1.dot(slow)) * o;
   return std::array<double, 2>{c1, c2};
 }
+
+/**
+ * Convert millimeter coordinates to pixel coordinates.
+ * Applies parallax correction if enabled for the panel, then converts to
+ * pixels.
+ * @param x X coordinate in millimeters
+ * @param y Y coordinate in millimeters
+ * @return Array containing [x_pixels, y_pixels]
+ */
+std::array<double, 2> Panel::mm_to_px(double x, double y) const {
+  std::array<double, 2> mm_coord{x, y};
+
+  if (parallax_correction_) {
+    // Extract detector geometry
+    Vector3d fast = d_.col(0);   // Fast axis direction
+    Vector3d slow = d_.col(1);   // Slow axis direction
+    Vector3d origin = d_.col(2); // Panel origin position
+    mm_coord = parallax_correction_mm_to_px(mu_, thickness_, mm_coord, fast,
+                                            slow, origin);
+  }
+
+  // Convert mm to pixels by dividing by pixel size
+  double pixel_x = mm_coord[0] / pixel_size_[0];
+  double pixel_y = mm_coord[1] / pixel_size_[1];
+
+  return std::array<double, 2>{pixel_x, pixel_y};
+}
+
+/**
+ * Convert millimeter coordinates to pixel coordinates without parallax
+ * correction. Performs direct conversion by dividing mm coordinates by pixel
+ * size.
+ * @param x X coordinate in millimeters
+ * @param y Y coordinate in millimeters
+ * @return Array containing [x_pixels, y_pixels]
+ */
+std::array<double, 2> Panel::mm_to_px_simple(double x, double y) const {
+  // Direct conversion from mm to pixels without parallax correction
+  double pixel_x = x / pixel_size_[0];
+  double pixel_y = y / pixel_size_[1];
+
+  return std::array<double, 2>{pixel_x, pixel_y};
+}
+
+/**
+ * Get the pixel size for this panel.
+ * @return Array containing [x_pixel_size, y_pixel_size] in millimeters
+ */
+std::array<double, 2> Panel::get_pixel_size() const { return pixel_size_; }
 
 // Define a simple detector, for now is just a vector of panels without any
 // hierarchy.
