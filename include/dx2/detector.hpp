@@ -72,7 +72,6 @@ public:
   Matrix3d get_d_matrix() const;
   std::array<double, 2> px_to_mm(double x, double y) const;
   std::array<double, 2> mm_to_px(double x, double y) const;
-  std::array<double, 2> mm_to_px_simple(double x, double y) const;
   std::array<double, 2> get_ray_intersection(Vector3d s1) const;
   std::array<double, 2> get_pixel_size() const;
   json to_json() const;
@@ -235,22 +234,6 @@ std::array<double, 2> Panel::mm_to_px(double x, double y) const {
   // Convert mm to pixels by dividing by pixel size
   double pixel_x = mm_coord[0] / pixel_size_[0];
   double pixel_y = mm_coord[1] / pixel_size_[1];
-
-  return std::array<double, 2>{pixel_x, pixel_y};
-}
-
-/**
- * Convert millimeter coordinates to pixel coordinates without parallax
- * correction. Performs direct conversion by dividing mm coordinates by pixel
- * size.
- * @param x X coordinate in millimeters
- * @param y Y coordinate in millimeters
- * @return Array containing [x_pixels, y_pixels]
- */
-std::array<double, 2> Panel::mm_to_px_simple(double x, double y) const {
-  // Direct conversion from mm to pixels without parallax correction
-  double pixel_x = x / pixel_size_[0];
-  double pixel_y = y / pixel_size_[1];
 
   return std::array<double, 2>{pixel_x, pixel_y};
 }
