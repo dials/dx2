@@ -871,9 +871,16 @@ public:
         }
 
         // 💾 Call the HDF5 writer to write raw data to file
-        write_raw_data_to_h5_group<T>(
-            group_id, name, typed->data.data(),
-            std::vector<hsize_t>(typed->shape.begin(), typed->shape.end()));
+        // Handle the case of N x 1 shaped data, want it written to disk as shape=(N,)
+        // rather than shape=(N,1)
+        std::vector<hsize_t> write_shape;
+        if ((typed->shape.size() == 2) && (typed->shape[1] == 1)){
+          write_shape = std::vector<hsize_t>({typed->shape[0]});
+        }
+        else {
+          write_shape = std::vector<hsize_t>(typed->shape.begin(), typed->shape.end());
+        }
+        write_raw_data_to_h5_group<T>(group_id, name, typed->data.data(), write_shape);
       };
 
       // 🌀 Dispatch the column type and invoke the write_col lambda
