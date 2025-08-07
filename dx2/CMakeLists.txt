@@ -1,5 +1,6 @@
 add_library(
     dx2
+    reflection.cxx
 )
 target_link_libraries(
     dx2
