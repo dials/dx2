@@ -5,6 +5,7 @@ add_library(
     h5/h5write.cxx
     beam.cxx
     crystal.cxx
+    detector.cxx
 )
 target_link_libraries(
     dx2
