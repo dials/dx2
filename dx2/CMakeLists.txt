@@ -3,6 +3,7 @@ add_library(
     reflection.cxx
     h5/h5read_processed.cxx
     h5/h5write.cxx
+    beam.cxx
 )
 target_link_libraries(
     dx2
