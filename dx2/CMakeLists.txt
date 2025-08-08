@@ -7,6 +7,7 @@ add_library(
     crystal.cxx
     detector.cxx
     goniometer.cxx
+    scan.cxx
 )
 target_link_libraries(
     dx2
