@@ -81,6 +81,9 @@ public:
   Vector3d get_normal() const;
   std::array<double, 2> get_image_size_mm() const;
   double get_directed_distance() const;
+  bool has_parallax_correction() const;
+  double get_mu() const;
+  double get_thickness() const;
   void update(Matrix3d d);
 
 protected:
@@ -118,6 +121,9 @@ std::array<double, 2> Panel::get_image_size_mm() const {
   return {image_size_[0] * pixel_size_[0], image_size_[1] * pixel_size_[1]};
 }
 double Panel::get_directed_distance() const { return origin_.dot(normal_); }
+bool Panel::has_parallax_correction() const { return parallax_correction_; }
+double Panel::get_mu() const { return mu_; }
+double Panel::get_thickness() const { return thickness_; }
 void Panel::update(Matrix3d d) {
   d_ = d;
   D_ = d_.inverse();
