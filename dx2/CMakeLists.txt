@@ -1,6 +1,7 @@
 add_library(
     dx2
     reflection.cxx
+    h5/h5read_processed.cxx
 )
 target_link_libraries(
     dx2
