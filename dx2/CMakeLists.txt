@@ -6,6 +6,7 @@ add_library(
     beam.cxx
     crystal.cxx
     detector.cxx
+    goniometer.cxx
 )
 target_link_libraries(
     dx2
