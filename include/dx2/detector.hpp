@@ -75,7 +75,9 @@ public:
     std::array<double, 2> pixel_size,
     std::array<int, 2> image_size,
     const std::string& fast_axis="x",
-    const std::string& slow_axis="-y"); // Simple constructor for flat panel perpendicular to beam.
+    const std::string& slow_axis="-y",
+    const double thickness=0.0,
+    const double mu=0.0); // Simple constructor for flat panel perpendicular to beam.
   Matrix3d get_d_matrix() const;
   std::array<double, 2> px_to_mm(double x, double y) const;
   std::array<double, 2> mm_to_px(double x, double y) const;
@@ -149,8 +151,10 @@ Panel::Panel(
   std::array<double, 2> pixel_size,
   std::array<int, 2> image_size,
   const std::string& fast_axis,
-  const std::string& slow_axis
-) : pixel_size_(pixel_size), image_size_(image_size){
+  const std::string& slow_axis,
+  double thickness,
+  double mu
+) : pixel_size_(pixel_size), image_size_(image_size), thickness_(thickness), mu_(mu) {
   if (valid_axes.find(fast_axis) == valid_axes.end()) {
       throw std::invalid_argument("Invalid fast_axis: " + fast_axis);
   }
@@ -168,6 +172,11 @@ Panel::Panel(
                     {fast_axis_[2], slow_axis_[2], origin_[2]}};
   d_ = d_matrix;
   D_ = d_.inverse();
+  // If mu and thickness are given, default assumption is to turn on parallax correction.
+  if (mu_ > 0.0 && thickness_ > 0.0){
+    parallax_correction_ = true;
+    std::string pixel_to_mm_strategy_{"ParallaxCorrectedPxMmStrategy"};
+  }
 }
 
 void Panel::set_correction_parameters(double thickness, double mu, bool parallax_correction=true){
