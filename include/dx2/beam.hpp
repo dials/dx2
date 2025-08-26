@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
+#include <array>
 #include <nlohmann/json.hpp>
 
 using Eigen::Vector3d;
