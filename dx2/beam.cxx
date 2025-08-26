@@ -4,6 +4,9 @@
  */
 
 #include "dx2/beam.hpp"
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 // BeamBase definitions
 
