@@ -55,6 +55,7 @@ public:
                     double transmission, double sample_to_source_distance);
   MonochromaticBeam(json beam_data);
   json to_json(std::string probe) const;
+  json to_json() const; // overload for default
   double get_wavelength() const;
   void set_wavelength(double wavelength);
   Vector3d get_s0() const;
@@ -95,6 +96,7 @@ public:
                     double sample_to_source_distance);
   PolychromaticBeam(json beam_data);
   json to_json(std::string probe) const;
+  json to_json() const; // overload for default
   std::array<double, 2> get_wavelength_range() const;
   void set_wavelength_range(std::array<double, 2> wavelength_range);
 

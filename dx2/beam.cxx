@@ -128,6 +128,12 @@ json MonochromaticBeam::to_json(std::string probe) const {
   return beam_data;
 }
 
+// Serialize to json format (default probe)
+json MonochromaticBeam::to_json() const {
+  // Delegate to the overload with the default probe name
+  return to_json("x-ray");
+}
+
 double MonochromaticBeam::get_wavelength() const { return wavelength_; }
 
 void MonochromaticBeam::set_wavelength(double wavelength) {
@@ -194,6 +200,12 @@ json PolychromaticBeam::to_json(std::string probe) const {
   beam_data["wavelength_range"] = wavelength_range_;
   add_to_json(beam_data);
   return beam_data;
+}
+
+// Serialize to json format (default probe)
+json PolychromaticBeam::to_json() const {
+  // Delegate to the overload with the default probe name
+  return to_json("x-ray");
 }
 
 std::array<double, 2> PolychromaticBeam::get_wavelength_range() const {
