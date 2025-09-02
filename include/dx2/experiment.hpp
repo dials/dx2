@@ -1,5 +1,4 @@
-#ifndef DX2_MODEL_EXPERIMENT_H
-#define DX2_MODEL_EXPERIMENT_H
+#pragma once
 #include <Eigen/Dense>
 #include <dx2/beam.hpp>
 #include <dx2/crystal.hpp>
@@ -128,5 +127,3 @@ template <class BeamType>
 void Experiment<BeamType>::set_identifier(std::string identifier) {
   _identifier = identifier;
 }
-
-#endif // DX2_MODEL_EXPERIMENT_H
