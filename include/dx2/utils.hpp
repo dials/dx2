@@ -1,5 +1,4 @@
-#ifndef DX2_UTILS_H
-#define DX2_UTILS_H
+#pragma once
 #include <Eigen/Dense>
 #include <math.h>
 
@@ -19,5 +18,3 @@ double angle_between_vectors_degrees(Vector3d v1, Vector3d v2) {
   double angle = std::acos(normdot) * 180.0 / M_PI;
   return angle;
 }
-
-#endif // DX2_UTILS_H
