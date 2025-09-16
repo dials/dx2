@@ -42,10 +42,9 @@ public:
   Panel() = default;
   Panel(json panel_data);
   Panel(double distance, std::array<double, 2> beam_center,
-    std::array<double, 2> pixel_size, std::array<int, 2> image_size,
-    const std::string &fast_axis = "x", const std::string &slow_axis = "-y",
-    const double thickness = 0.0,
-    const double mu =0.0);
+        std::array<double, 2> pixel_size, std::array<int, 2> image_size,
+        const std::string &fast_axis = "x", const std::string &slow_axis = "-y",
+        const double thickness = 0.0, const double mu = 0.0);
   Matrix3d get_d_matrix() const;
   Matrix3d get_D_matrix() const;
   std::array<double, 2> px_to_mm(double x, double y) const;
@@ -64,7 +63,8 @@ public:
   double get_mu() const;
   double get_thickness() const;
   void update(Matrix3d d);
-  void set_correction_parameters(double thickness, double mu, bool parallax_correction);
+  void set_correction_parameters(double thickness, double mu,
+                                 bool parallax_correction);
 
 protected:
   // panel_frame items
