@@ -4,6 +4,7 @@
  */
 
 #include "dx2/detector.hpp"
+#include <set>
 
 double attenuation_length(double mu, double t0, Vector3d s1, Vector3d fast,
                           Vector3d slow, Vector3d origin) {
@@ -175,6 +176,56 @@ std::array<double, 2> Panel::mm_to_px(double x, double y) const {
 }
 
 std::array<double, 2> Panel::get_pixel_size() const { return pixel_size_; }
+
+const std::set<std::string> valid_axes = {"x", "-x", "y", "-y"};
+const std::map<std::string, Vector3d> axis_map = {
+    {"x", Vector3d(1.0, 0.0, 0.0)},
+    {"-x", Vector3d(-1.0, 0.0, 0.0)},
+    {"y", Vector3d(0.0, 1.0, 0.0)},
+    {"-y", Vector3d(0.0, -1.0, 0.0)}};
+Panel::Panel(double distance, std::array<double, 2> beam_center,
+             std::array<double, 2> pixel_size, std::array<int, 2> image_size,
+             const std::string &fast_axis, const std::string &slow_axis,
+             double thickness, double mu)
+    : pixel_size_(pixel_size), image_size_(image_size), thickness_(thickness),
+      mu_(mu) {
+  if (valid_axes.find(fast_axis) == valid_axes.end()) {
+    throw std::invalid_argument("Invalid fast_axis: " + fast_axis);
+  }
+  if (valid_axes.find(slow_axis) == valid_axes.end()) {
+    throw std::invalid_argument("Invalid fast_axis: " + slow_axis);
+  }
+  origin_ = {0., 0., -1.0 * distance};
+  fast_axis_ = axis_map.find(fast_axis)->second;
+  slow_axis_ = axis_map.find(slow_axis)->second;
+  origin_ -= beam_center[0] * pixel_size_[0] * fast_axis_;
+  origin_ -= beam_center[1] * pixel_size_[1] * slow_axis_;
+  normal_ = fast_axis_.cross(slow_axis_);
+  Matrix3d d_matrix{{fast_axis_[0], slow_axis_[0], origin_[0]},
+                    {fast_axis_[1], slow_axis_[1], origin_[1]},
+                    {fast_axis_[2], slow_axis_[2], origin_[2]}};
+  d_ = d_matrix;
+  D_ = d_.inverse();
+  // If mu and thickness are given, default assumption is to turn on parallax
+  // correction.
+  if (mu_ > 0.0 && thickness_ > 0.0) {
+    parallax_correction_ = true;
+    std::string pixel_to_mm_strategy_{"ParallaxCorrectedPxMmStrategy"};
+  }
+}
+
+void Panel::set_correction_parameters(double thickness, double mu,
+                                      bool parallax_correction = true) {
+  thickness_ = thickness;
+  mu_ = mu;
+  if (parallax_correction) {
+    parallax_correction_ = true;
+    pixel_to_mm_strategy_ = "ParallaxCorrectedPxMmStrategy";
+  } else {
+    parallax_correction_ = false;
+    pixel_to_mm_strategy_ = "SimplePxMmStrategy";
+  }
+}
 
 // Detector implementations
 
