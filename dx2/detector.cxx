@@ -156,6 +156,11 @@ std::array<double, 2> Panel::px_to_mm(double x, double y) const {
   return std::array<double, 2>{c1, c2};
 }
 
+// Input x and y are in mm
+Vector3d Panel::get_lab_coord(double x_mm, double y_mm) const {
+  return d_ * Vector3d(x_mm, y_mm, 1.0);
+}
+
 std::array<double, 2> Panel::mm_to_px(double x, double y) const {
   std::array<double, 2> mm_coord{x, y};
 
