@@ -236,6 +236,12 @@ Detector::Detector(json detector_data) {
   }
 }
 
+Detector::Detector(std::vector<Panel> panels) {
+  for (auto it = panels.begin(); it != panels.end(); ++it) {
+    _panels.push_back(*it);
+  }
+}
+
 json Detector::to_json() const {
   json detector_data;
   std::vector<json> panels_array;

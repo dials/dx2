@@ -99,6 +99,7 @@ class Detector {
 public:
   Detector() = default;
   Detector(json detector_data);
+  Detector(std::vector<Panel> panels);
   json to_json() const;
   std::vector<Panel> panels() const;
   std::optional<std::pair<int, std::array<double, 2>>>

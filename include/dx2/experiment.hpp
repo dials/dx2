@@ -22,6 +22,11 @@ public:
   Detector &detector();
   const Crystal &crystal() const;
   void set_crystal(Crystal crystal);
+  void set_beam(BeamType beam);
+  void set_scan(Scan scan);
+  void set_detector(Detector detector);
+  void set_goniometer(Goniometer goniometer);
+  void set_imageset_json(json imageset_json);
   void set_identifier(std::string identifier);
 
 protected:
@@ -115,8 +120,33 @@ void Experiment<BeamType>::set_crystal(Crystal crystal) {
   _crystal = crystal;
 }
 
+template <class BeamType>
+void Experiment<BeamType>::set_beam(BeamType beam) {
+  _beam = beam;
+}
+
 template <class BeamType> BeamType &Experiment<BeamType>::beam() {
   return _beam;
+}
+
+template <class BeamType>
+void Experiment<BeamType>::set_scan(Scan scan) {
+  _scan = scan;
+}
+
+template <class BeamType>
+void Experiment<BeamType>::set_detector(Detector detector) {
+  _detector = detector;
+}
+
+template <class BeamType>
+void Experiment<BeamType>::set_goniometer(Goniometer goniometer) {
+  _goniometer = goniometer;
+}
+
+template <class BeamType>
+void Experiment<BeamType>::set_imageset_json(json imageset_json) {
+  _imageset_json = imageset_json;
 }
 
 template <class BeamType>
