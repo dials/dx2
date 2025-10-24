@@ -8,6 +8,7 @@ add_library(
     detector.cxx
     goniometer.cxx
     scan.cxx
+    detector_attenuations.cxx
 )
 target_link_libraries(
     dx2
