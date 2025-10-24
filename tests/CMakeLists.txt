@@ -11,9 +11,13 @@ target_link_libraries(test_write_h5_array GTest::gtest_main dx2 hdf5::hdf5)
 add_executable(test_reflection_table test_reflection_table.cxx)
 target_link_libraries(test_reflection_table GTest::gtest_main dx2)
 
+add_executable(test_detector_attenuations test_detector_attenuations.cxx)
+target_link_libraries(test_detector_attenuations GTest::gtest_main dx2)
+
 include(GoogleTest)
 
 gtest_discover_tests(test_crystal PROPERTIES LABELS dx2tests)
 gtest_discover_tests(test_read_h5_array WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tests" PROPERTIES LABELS dx2tests)
 gtest_discover_tests(test_write_h5_array WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tests" PROPERTIES LABELS dx2tests)
 gtest_discover_tests(test_reflection_table WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tests" PROPERTIES LABELS dx2tests)
+gtest_discover_tests(test_detector_attenuations WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tests" PROPERTIES LABELS dx2tests)
