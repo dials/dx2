@@ -4,8 +4,8 @@
  */
 
 #include "dx2/detector.hpp"
-#include <set>
 #include <optional>
+#include <set>
 
 double attenuation_length(double mu, double t0, Vector3d s1, Vector3d fast,
                           Vector3d slow, Vector3d origin) {
@@ -91,7 +91,8 @@ Panel::Panel(json panel_data) {
   D_ = d_.inverse();
   pixel_size_ = {{panel_data["pixel_size"][0], panel_data["pixel_size"][1]}};
   image_size_ = {{panel_data["image_size"][0], panel_data["image_size"][1]}};
-  image_size_mm_ = {{image_size_[0] * pixel_size_[0], image_size_[1] * pixel_size_[1]}};
+  image_size_mm_ = {
+      {image_size_[0] * pixel_size_[0], image_size_[1] * pixel_size_[1]}};
   trusted_range_ = {
       {panel_data["trusted_range"][0], panel_data["trusted_range"][1]}};
   type_ = panel_data["type"];
@@ -133,16 +134,18 @@ Matrix3d Panel::get_d_matrix() const { return d_; }
 
 Matrix3d Panel::get_D_matrix() const { return D_; }
 
-std::optional<std::array<double, 2>> Panel::get_ray_intersection(const Vector3d &s1) const {
+std::optional<std::array<double, 2>>
+Panel::get_ray_intersection(const Vector3d &s1) const {
   Vector3d v = D_ * s1;
-  if (v[2] <= 0){
+  if (v[2] <= 0) {
     return {};
   }
   std::array<double, 2> pxy;
   pxy[0] = v[0] / v[2];
   pxy[1] = v[1] / v[2];
   /** Check if the coordinate is invalid */
-  if (pxy[0] < 0 || pxy[1] < 0 || pxy[0] > image_size_mm_[0] || pxy[1] > image_size_mm_[1]){
+  if (pxy[0] < 0 || pxy[1] < 0 || pxy[0] > image_size_mm_[0] ||
+      pxy[1] > image_size_mm_[1]) {
     return {};
   }
   return pxy; // in mmm
@@ -266,23 +269,24 @@ std::vector<Panel> Detector::panels() const { return _panels; }
 
 void Detector::update(Matrix3d d) { _panels[0].update(d); }
 
-std::optional<intersection> Detector::get_ray_intersection(const Vector3d &s1) const {
+std::optional<intersection>
+Detector::get_ray_intersection(const Vector3d &s1) const {
   double w_max = 0;
-  std::array<double, 2> pxy = {0,0};
+  std::array<double, 2> pxy = {0, 0};
   int panel_id = -1;
-  for (int i=0;i<_panels.size();++i){
-    const Panel& p = _panels[i];
+  for (int i = 0; i < _panels.size(); ++i) {
+    const Panel &p = _panels[i];
     Vector3d v = p.get_D_matrix() * s1;
-    if (v[2] > w_max){
+    if (v[2] > w_max) {
       auto intersect = p.get_ray_intersection(s1);
-      if (intersect.has_value()){
+      if (intersect.has_value()) {
         pxy = intersect.value();
         w_max = v[2];
         panel_id = i;
       }
     }
   }
-  if (w_max == 0.0 || panel_id == -1){
+  if (w_max == 0.0 || panel_id == -1) {
     return {};
   }
   return intersection{panel_id, pxy};
