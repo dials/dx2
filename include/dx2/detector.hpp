@@ -50,7 +50,8 @@ public:
   std::array<double, 2> px_to_mm(double x, double y) const;
   std::array<double, 2> mm_to_px(double x, double y) const;
   Vector3d get_lab_coord(double x_mm, double y_mm) const;
-  std::array<double, 2> get_ray_intersection(Vector3d s1) const;
+  std::optional<std::array<double, 2>>
+  get_ray_intersection(const Vector3d &s1) const;
   std::array<double, 2> get_pixel_size() const;
   json to_json() const;
   Vector3d get_origin() const;
@@ -75,10 +76,10 @@ protected:
   Vector3d normal_{{0.0, 0.0, 1.0}};
   Matrix3d d_{{1, 0, 0}, {0, 1, 0}, {0, 0, 100.0}};
   Matrix3d D_{{1, 0, 0}, {0, 1, 0}, {0, 0, 0.01}};
-  // double distance_{100.0};
   //  panel data
   std::array<double, 2> pixel_size_{{0.075, 0.075}};
   std::array<int, 2> image_size_{{0, 0}};
+  std::array<double, 2> image_size_mm_{{0, 0}};
   std::array<double, 2> trusted_range_{0.0, 65536.0};
   std::string type_{"SENSOR_PAD"};
   std::string name_{"module"};
@@ -94,6 +95,11 @@ protected:
   bool parallax_correction_ = false;
 };
 
+struct intersection {
+  int panel_id;
+  std::array<double, 2> xymm;
+};
+
 // Define a simple detector, for now is just a vector of panels without any
 // hierarchy.
 class Detector {
@@ -102,8 +108,7 @@ public:
   Detector(json detector_data);
   json to_json() const;
   std::vector<Panel> panels() const;
-  std::optional<std::pair<int, std::array<double, 2>>>
-  get_ray_intersection(const Vector3d &s1) const;
+  std::optional<intersection> get_ray_intersection(const Vector3d &s1) const;
   void update(Matrix3d d);
 
 protected:
