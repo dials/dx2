@@ -70,8 +70,10 @@ Goniometer::Goniometer(std::vector<Vector3d> axes, std::vector<double> angles,
   init();
 }
 
-Goniometer::Goniometer(Matrix3d sample_rotation, Vector3d rotation_axis, Matrix3d setting_rotation)
-    : sample_rotation_{sample_rotation}, rotation_axis_{rotation_axis}, setting_rotation_{setting_rotation} {}
+Goniometer::Goniometer(Matrix3d sample_rotation, Vector3d rotation_axis,
+                       Matrix3d setting_rotation)
+    : sample_rotation_{sample_rotation}, rotation_axis_{rotation_axis},
+      setting_rotation_{setting_rotation} {}
 
 Matrix3d Goniometer::get_setting_rotation() const { return setting_rotation_; }
 
@@ -82,34 +84,32 @@ Vector3d Goniometer::get_rotation_axis() const { return rotation_axis_; }
 Goniometer::Goniometer(json goniometer_data) {
   // The goniometer data can either be single or multi axis form.
   std::vector<std::string> multi_axis_keys = {"axes", "angles", "names",
-                                            "scan_axis"};
-  std::vector<std::string> single_axis_keys = {"rotation_axis", "fixed_rotation", "setting_rotation"};
+                                              "scan_axis"};
+  std::vector<std::string> single_axis_keys = {
+      "rotation_axis", "fixed_rotation", "setting_rotation"};
 
   for (const auto &key : multi_axis_keys) {
     if (goniometer_data.find(key) == goniometer_data.end()) {
-      // Could be a single axis gonio - they only provide rotation, fixed and setting
+      // Could be a single axis gonio - they only provide rotation, fixed and
+      // setting
       for (const auto &akey : single_axis_keys) {
         if (goniometer_data.find(akey) == goniometer_data.end()) {
           throw std::invalid_argument("Key " + key +
-                                  " is missing from the input goniometer JSON - treating as single axis but" +
-                                  " key " + akey + " also missing.");
+                                      " is missing from the input goniometer "
+                                      "JSON - treating as single axis but" +
+                                      " key " + akey + " also missing.");
         }
       }
       // We can create from the rotation axis data.
-      rotation_axis_ = Vector3d(
-        goniometer_data["rotation_axis"][0],
-        goniometer_data["rotation_axis"][1],
-        goniometer_data["rotation_axis"][2]);
+      rotation_axis_ = Vector3d(goniometer_data["rotation_axis"][0],
+                                goniometer_data["rotation_axis"][1],
+                                goniometer_data["rotation_axis"][2]);
       json setting = goniometer_data["setting_rotation"];
-      setting_rotation_ << 
-        setting[0], setting[1], setting[2],
-        setting[3], setting[4], setting[5],
-        setting[6], setting[7], setting[8]; // F
+      setting_rotation_ << setting[0], setting[1], setting[2], setting[3],
+          setting[4], setting[5], setting[6], setting[7], setting[8]; // F
       json sample = goniometer_data["fixed_rotation"];
-      sample_rotation_ <<
-        sample[0], sample[1], sample[2],
-        sample[3], sample[4], sample[5],
-        sample[6], sample[7], sample[8]; // S
+      sample_rotation_ << sample[0], sample[1], sample[2], sample[3], sample[4],
+          sample[5], sample[6], sample[7], sample[8]; // S
       return;
     }
   }
@@ -141,24 +141,25 @@ Goniometer::Goniometer(json goniometer_data) {
 
 json Goniometer::to_json() const {
   json goniometer_data;
-  if (axes_.size() > 0){
+  if (axes_.size() > 0) {
     // Multi-axis format
     goniometer_data["axes"] = axes_;
     goniometer_data["angles"] = angles_;
     goniometer_data["names"] = names_;
     goniometer_data["scan_axis"] = scan_axis_;
-  }
-  else {
+  } else {
     // Single-axis format
     goniometer_data["rotation_axis"] = rotation_axis_;
     goniometer_data["fixed_rotation"] = std::vector<double>{
-      sample_rotation_(0,0), sample_rotation_(0,1), sample_rotation_(0,2),
-      sample_rotation_(1,0), sample_rotation_(1,1), sample_rotation_(1,2),
-      sample_rotation_(2,0), sample_rotation_(2,1), sample_rotation_(2,2)};
-    goniometer_data["setting_rotation"] = std::vector<double>{
-      setting_rotation_(0,0), setting_rotation_(0,1), setting_rotation_(0,2),
-      setting_rotation_(1,0), setting_rotation_(1,1), setting_rotation_(1,2),
-      setting_rotation_(2,0), setting_rotation_(2,1), setting_rotation_(2,2)};
+        sample_rotation_(0, 0), sample_rotation_(0, 1), sample_rotation_(0, 2),
+        sample_rotation_(1, 0), sample_rotation_(1, 1), sample_rotation_(1, 2),
+        sample_rotation_(2, 0), sample_rotation_(2, 1), sample_rotation_(2, 2)};
+    goniometer_data["setting_rotation"] =
+        std::vector<double>{setting_rotation_(0, 0), setting_rotation_(0, 1),
+                            setting_rotation_(0, 2), setting_rotation_(1, 0),
+                            setting_rotation_(1, 1), setting_rotation_(1, 2),
+                            setting_rotation_(2, 0), setting_rotation_(2, 1),
+                            setting_rotation_(2, 2)};
   }
   return goniometer_data;
 }

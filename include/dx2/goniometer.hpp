@@ -18,14 +18,16 @@ public:
   Goniometer(std::vector<Vector3d> axes, std::vector<double> angles,
              std::vector<std::string> names, std::size_t scan_axis);
   Goniometer(json goniometer_data);
-  Goniometer(Matrix3d sample_rotation, Vector3d axis,  Matrix3d setting_rotation);
+  Goniometer(Matrix3d sample_rotation, Vector3d axis,
+             Matrix3d setting_rotation);
   Matrix3d get_setting_rotation() const;
   Matrix3d get_sample_rotation() const;
   Vector3d get_rotation_axis() const;
   json to_json() const;
 
 protected:
-  void init(); // Sets the matrices from the axes and angles for multi-axis goniometers.
+  void init(); // Sets the matrices from the axes and angles for multi-axis
+               // goniometers.
   // These two functions calculate F and S for multi-axis goniometers.
   Matrix3d calculate_setting_rotation();
   Matrix3d calculate_sample_rotation();
