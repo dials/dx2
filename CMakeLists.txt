@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Only include global build-configuration features if we are the root CMakeLists.txt
-if(CMAKE_CURRENT_SOURCE_DIR EQUAL CMAKE_SOURCE_DIR)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
     include(SetDefaultBuildRelWithDebInfo)
     include(AlwaysColourCompilation)
