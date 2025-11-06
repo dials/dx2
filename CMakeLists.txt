@@ -96,11 +96,13 @@ install(
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
+    COMPONENT Runtime
 )
 
 install(
     DIRECTORY include/dx2/
     DESTINATION include/dx2
+    COMPONENT Runtime
     FILES_MATCHING PATTERN "*.hpp"
 )
 
