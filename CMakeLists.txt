@@ -75,14 +75,57 @@ add_subdirectory(tests)
 
 # #######################################################################
 # Installation
+
+# Install FetchContent dependencies if they were fetched (not found via find_package)
+if(NOT nlohmann_json_FOUND)
+    install(TARGETS nlohmann_json EXPORT DX2Targets)
+endif()
+if(NOT fmt_FOUND)
+    install(TARGETS fmt EXPORT DX2Targets
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+    )
+endif()
+# Eigen3 is header-only, doesn't need runtime installation
+# mdspan is header-only, doesn't need runtime installation
+# GTest is test-only, doesn't need installation
+
 install(
     TARGETS dx2
+    EXPORT DX2Targets
     LIBRARY DESTINATION lib
-    COMPONENT Runtime
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
 )
 
 install(
     DIRECTORY include/dx2/
     DESTINATION include/dx2
     FILES_MATCHING PATTERN "*.hpp"
+)
+
+# Export targets
+install(
+    EXPORT DX2Targets
+    FILE DX2Targets.cmake
+    NAMESPACE dx2::
+    DESTINATION lib/cmake/DX2
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake"
+    INSTALL_DESTINATION "lib/cmake/DX2"
+)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY AnyNewerVersion
+)
+install(
+    FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake
+    DESTINATION lib/cmake/DX2
 )
