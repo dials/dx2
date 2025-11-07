@@ -2,3 +2,6 @@ gemmi
 cmake
 hdf5=1.12.2
 hdf5-external-filter-plugins
+nlohmann_json>=3.11.3
+fmt>=11.0
+eigen>=3.4
