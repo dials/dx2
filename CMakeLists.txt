@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Only include global build-configuration features if we are the root CMakeLists.txt
-if(CMAKE_CURRENT_SOURCE_DIR EQUAL CMAKE_SOURCE_DIR)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
     include(SetDefaultBuildRelWithDebInfo)
     include(AlwaysColourCompilation)
@@ -19,50 +19,34 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 # External Dependencies
 find_package(HDF5 REQUIRED)
 find_package(gemmi CONFIG REQUIRED)
+find_package(nlohmann_json 3.11.3 REQUIRED)
+find_package(fmt 11.0 REQUIRED)
+find_package(Eigen3 3.4 REQUIRED)
 
-# #######################################################################
-# Automatic Dependencies
+# mdspan and GTest can use FetchContent as fallback
 set(FETCHCONTENT_QUIET OFF)
 include(FetchContent)
-FetchContent_Declare(
-    nlohmann_json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_Declare(
-    GTest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG b514bdc898e2951020cbdca1304b75f5950d1f59 # v1.15.2
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_Declare(
-    fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 11.2.0
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_Declare(
-    Eigen3
-    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG 3.4.0
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_Declare(
-    mdspan
-    GIT_REPOSITORY https://github.com/kokkos/mdspan
-    GIT_TAG mdspan-0.6.0
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_MakeAvailable(Eigen3 fmt nlohmann_json mdspan)
 
-# GTest could have been made available under a different name
-if(NOT TARGET GTest::gtest_main)
+find_package(mdspan QUIET)
+if(NOT mdspan_FOUND AND NOT TARGET std::mdspan)
+    FetchContent_Declare(
+        mdspan
+        GIT_REPOSITORY https://github.com/kokkos/mdspan
+        GIT_TAG mdspan-0.6.0
+        EXCLUDE_FROM_ALL
+    )
+    FetchContent_MakeAvailable(mdspan)
+endif()
+
+# GTest for testing
+find_package(GTest QUIET)
+if(NOT GTest_FOUND AND NOT TARGET GTest::gtest_main)
+    FetchContent_Declare(
+        GTest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG b514bdc898e2951020cbdca1304b75f5950d1f59 # v1.15.2
+        EXCLUDE_FROM_ALL
+    )
     FetchContent_MakeAvailable(GTest)
 endif()
 
@@ -75,44 +59,45 @@ add_subdirectory(tests)
 
 # #######################################################################
 # Installation
-# install(
-#     TARGETS dx2
-#     EXPORT DX2Targets
-#     LIBRARY DESTINATION lib
 
-#     # FILE_SET HEADERS DESTINATION include/dx2
-# )
-# install(
-#     FILES
-#     include/dx2/dx2.h
-#     DESTINATION include/dx2
-# )
+install(
+    TARGETS dx2
+    EXPORT DX2Targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    COMPONENT Runtime
+)
 
-# install(
-#     EXPORT DX2Targets
-#     FILE DX2Targets.cmake
-#     DESTINATION lib/cmake/DX2
-# )
+install(
+    DIRECTORY include/dx2/
+    DESTINATION include/dx2
+    COMPONENT Runtime
+    FILES_MATCHING PATTERN "*.hpp"
+)
 
-# include(CMakePackageConfigHelpers)
-# configure_package_config_file(
-#     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
-#     "${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake"
-#     INSTALL_DESTINATION "lib/cmake/DX2"
-#     NO_SET_AND_CHECK_MACRO
-#     NO_CHECK_REQUIRED_COMPONENTS_MACRO
-# )
-# write_basic_package_version_file(
-#     "${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake"
-#     VERSION "${DX2_VERSION_MAJOR}.${DX2_VERSION_MINOR}"
-#     COMPATIBILITY AnyNewerVersion
-# )
-# install(
-#     FILES
-#     ${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake
-#     ${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake
-#     DESTINATION lib/cmake/DX2
-# )
-# export(EXPORT DX2Targets
-#     FILE "${CMAKE_CURRENT_BINARY_DIR}/DX2Targets.cmake"
-# )
+# Export targets
+install(
+    EXPORT DX2Targets
+    FILE DX2Targets.cmake
+    NAMESPACE dx2::
+    DESTINATION lib/cmake/DX2
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake"
+    INSTALL_DESTINATION "lib/cmake/DX2"
+)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY AnyNewerVersion
+)
+install(
+    FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake
+    DESTINATION lib/cmake/DX2
+)
