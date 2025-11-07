@@ -19,50 +19,34 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 # External Dependencies
 find_package(HDF5 REQUIRED)
 find_package(gemmi CONFIG REQUIRED)
+find_package(nlohmann_json 3.11.3 REQUIRED)
+find_package(fmt 11.0 REQUIRED)
+find_package(Eigen3 3.4 REQUIRED)
 
-# #######################################################################
-# Automatic Dependencies
+# mdspan and GTest can use FetchContent as fallback
 set(FETCHCONTENT_QUIET OFF)
 include(FetchContent)
-FetchContent_Declare(
-    nlohmann_json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_Declare(
-    GTest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG b514bdc898e2951020cbdca1304b75f5950d1f59 # v1.15.2
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_Declare(
-    fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 11.2.0
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_Declare(
-    Eigen3
-    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG 3.4.0
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_Declare(
-    mdspan
-    GIT_REPOSITORY https://github.com/kokkos/mdspan
-    GIT_TAG mdspan-0.6.0
-    EXCLUDE_FROM_ALL
-    FIND_PACKAGE_ARGS
-)
-FetchContent_MakeAvailable(Eigen3 fmt nlohmann_json mdspan)
 
-# GTest could have been made available under a different name
-if(NOT TARGET GTest::gtest_main)
+find_package(mdspan QUIET)
+if(NOT mdspan_FOUND AND NOT TARGET std::mdspan)
+    FetchContent_Declare(
+        mdspan
+        GIT_REPOSITORY https://github.com/kokkos/mdspan
+        GIT_TAG mdspan-0.6.0
+        EXCLUDE_FROM_ALL
+    )
+    FetchContent_MakeAvailable(mdspan)
+endif()
+
+# GTest for testing
+find_package(GTest QUIET)
+if(NOT GTest_FOUND AND NOT TARGET GTest::gtest_main)
+    FetchContent_Declare(
+        GTest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG b514bdc898e2951020cbdca1304b75f5950d1f59 # v1.15.2
+        EXCLUDE_FROM_ALL
+    )
     FetchContent_MakeAvailable(GTest)
 endif()
 
@@ -75,20 +59,6 @@ add_subdirectory(tests)
 
 # #######################################################################
 # Installation
-
-# Install FetchContent dependencies if they were fetched (not found via find_package)
-if(NOT nlohmann_json_FOUND)
-    install(TARGETS nlohmann_json EXPORT DX2Targets)
-endif()
-if(NOT fmt_FOUND)
-    install(TARGETS fmt EXPORT DX2Targets
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-    )
-endif()
-# Eigen3 is header-only, doesn't need runtime installation
-# mdspan is header-only, doesn't need runtime installation
-# GTest is test-only, doesn't need installation
 
 install(
     TARGETS dx2
