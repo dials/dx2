@@ -58,8 +58,9 @@ Crystal::Crystal(json crystal_data) {
   Vector3d rsc{{crystal_data["real_space_c"][0],
                 crystal_data["real_space_c"][1],
                 crystal_data["real_space_c"][2]}};
-  space_group_ =
-      *gemmi::find_spacegroup_by_name(crystal_data["space_group_hall_symbol"]);
+  std::string hall_symbol = crystal_data["space_group_hall_symbol"];
+  gemmi::GroupOps ops = gemmi::symops_from_hall(hall_symbol.c_str());
+  space_group_ = *gemmi::find_spacegroup_by_ops(ops);
   init_from_abc(rsa, rsb, rsc);
 }
 
