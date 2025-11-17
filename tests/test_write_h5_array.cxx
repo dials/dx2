@@ -34,24 +34,21 @@ TEST_F(HDF5Test, TraverseOrCreateGroups) {
 
   try {
     std::string group_path = "/dials/processing/group_0";
-    hid_t final_group = traverse_or_create_groups(file, group_path);
-    ASSERT_GE(final_group, 0) << "Failed to create or open the final group.";
+    h5utils::H5Group final_group = traverse_or_create_groups(file, group_path);
+    ASSERT_GE(final_group.id, 0) << "Failed to create or open the final group.";
 
     // Verify group hierarchy exists
-    hid_t dials_group = H5Gopen(file, "dials", H5P_DEFAULT);
-    ASSERT_GE(dials_group, 0) << "Failed to open the 'dials' group.";
+    h5utils::H5Group dials_group(H5Gopen(file, "dials", H5P_DEFAULT));
+    ASSERT_GE(dials_group.id, 0) << "Failed to open the 'dials' group.";
 
-    hid_t processing_group = H5Gopen(dials_group, "processing", H5P_DEFAULT);
-    ASSERT_GE(processing_group, 0) << "Failed to open the 'processing' group.";
+    h5utils::H5Group processing_group(
+        H5Gopen(dials_group, "processing", H5P_DEFAULT));
+    ASSERT_GE(processing_group.id, 0)
+        << "Failed to open the 'processing' group.";
 
-    hid_t group_0 = H5Gopen(processing_group, "group_0", H5P_DEFAULT);
-    ASSERT_GE(group_0, 0) << "Failed to open the 'group_0' group.";
+    h5utils::H5Group group_0(H5Gopen(processing_group, "group_0", H5P_DEFAULT));
+    ASSERT_GE(group_0.id, 0) << "Failed to open the 'group_0' group.";
 
-    // Close all groups
-    H5Gclose(group_0);
-    H5Gclose(processing_group);
-    H5Gclose(dials_group);
-    H5Gclose(final_group);
   } catch (const std::runtime_error &e) {
     FAIL() << "Runtime error occurred: " << e.what();
   }

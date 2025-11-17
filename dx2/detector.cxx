@@ -4,6 +4,7 @@
  */
 
 #include "dx2/detector.hpp"
+#include <optional>
 #include <set>
 
 double attenuation_length(double mu, double t0, Vector3d s1, Vector3d fast,
@@ -90,6 +91,8 @@ Panel::Panel(json panel_data) {
   D_ = d_.inverse();
   pixel_size_ = {{panel_data["pixel_size"][0], panel_data["pixel_size"][1]}};
   image_size_ = {{panel_data["image_size"][0], panel_data["image_size"][1]}};
+  image_size_mm_ = {
+      {image_size_[0] * pixel_size_[0], image_size_[1] * pixel_size_[1]}};
   trusted_range_ = {
       {panel_data["trusted_range"][0], panel_data["trusted_range"][1]}};
   type_ = panel_data["type"];
@@ -129,13 +132,22 @@ json Panel::to_json() const {
 
 Matrix3d Panel::get_d_matrix() const { return d_; }
 
-std::array<double, 2> Panel::get_ray_intersection(Vector3d s1) const {
+Matrix3d Panel::get_D_matrix() const { return D_; }
+
+std::optional<std::array<double, 2>>
+Panel::get_ray_intersection(const Vector3d &s1) const {
   Vector3d v = D_ * s1;
-  // assert v[2] > 0
+  if (v[2] <= 0) {
+    return {};
+  }
   std::array<double, 2> pxy;
   pxy[0] = v[0] / v[2];
   pxy[1] = v[1] / v[2];
-  // FIXME check is valid
+  /** Check if the coordinate is invalid */
+  if (pxy[0] < 0 || pxy[1] < 0 || pxy[0] > image_size_mm_[0] ||
+      pxy[1] > image_size_mm_[1]) {
+    return {};
+  }
   return pxy; // in mmm
 }
 
@@ -154,6 +166,11 @@ std::array<double, 2> Panel::px_to_mm(double x, double y) const {
   double c1 = x1 - (s1.dot(fast)) * o;
   double c2 = x2 - (s1.dot(slow)) * o;
   return std::array<double, 2>{c1, c2};
+}
+
+// Input x and y are in mm
+Vector3d Panel::get_lab_coord(double x_mm, double y_mm) const {
+  return d_ * Vector3d(x_mm, y_mm, 1.0);
 }
 
 std::array<double, 2> Panel::mm_to_px(double x, double y) const {
@@ -195,6 +212,8 @@ Panel::Panel(double distance, std::array<double, 2> beam_center,
   if (valid_axes.find(slow_axis) == valid_axes.end()) {
     throw std::invalid_argument("Invalid fast_axis: " + slow_axis);
   }
+  image_size_mm_[0] = image_size_[0] * pixel_size_[0];
+  image_size_mm_[1] = image_size_[1] * pixel_size_[1];
   origin_ = {0., 0., -1.0 * distance};
   fast_axis_ = axis_map.find(fast_axis)->second;
   slow_axis_ = axis_map.find(slow_axis)->second;
@@ -255,3 +274,26 @@ json Detector::to_json() const {
 std::vector<Panel> Detector::panels() const { return _panels; }
 
 void Detector::update(Matrix3d d) { _panels[0].update(d); }
+
+std::optional<intersection>
+Detector::get_ray_intersection(const Vector3d &s1) const {
+  double w_max = 0;
+  std::array<double, 2> pxy = {0, 0};
+  int panel_id = -1;
+  for (int i = 0; i < _panels.size(); ++i) {
+    const Panel &p = _panels[i];
+    Vector3d v = p.get_D_matrix() * s1;
+    if (v[2] > w_max) {
+      auto intersect = p.get_ray_intersection(s1);
+      if (intersect.has_value()) {
+        pxy = intersect.value();
+        w_max = v[2];
+        panel_id = i;
+      }
+    }
+  }
+  if (w_max == 0.0 || panel_id == -1) {
+    return {};
+  }
+  return intersection{panel_id, pxy};
+}
