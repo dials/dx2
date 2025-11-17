@@ -1,5 +1,6 @@
 add_library(
     dx2
+    utils.cxx
     reflection.cxx
     h5/h5read_processed.cxx
     h5/h5write.cxx

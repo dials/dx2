@@ -5,6 +5,7 @@
 #include <dx2/detector.hpp>
 #include <dx2/goniometer.hpp>
 #include <dx2/scan.hpp>
+#include <dx2/utils.hpp>
 #include <dx2/imagesequence.hpp>
 #include <nlohmann/json.hpp>
 
@@ -29,6 +30,7 @@ public:
   void set_goniometer(Goniometer goniometer);
   void set_imagesequence(ImageSequence imagesequence);
   void set_identifier(std::string identifier);
+  void generate_identifier();
 
 protected:
   BeamType _beam{};
@@ -157,4 +159,9 @@ const std::string &Experiment<BeamType>::identifier() const {
 template <class BeamType>
 void Experiment<BeamType>::set_identifier(std::string identifier) {
   _identifier = identifier;
+}
+
+template <class BeamType>
+void Experiment<BeamType>::generate_identifier() {
+  _identifier = ersatz_uuid4();
 }

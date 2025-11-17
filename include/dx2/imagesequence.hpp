@@ -6,7 +6,8 @@ using json = nlohmann::json;
 class ImageSequence {
 public:
     ImageSequence() = default;
-    ImageSequence(std::string filename, int n_images);
+    ImageSequence(std::string filename, int n_images); // Constructor for MultiImage formats e.g. h5.
+    ImageSequence(std::string filename); // Constructor for non-MultiImage formats e.g. cbf.
     ImageSequence(json imagesequence_data);
     json to_json() const;
 protected:
