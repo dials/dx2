@@ -9,6 +9,7 @@ add_library(
     goniometer.cxx
     scan.cxx
     detector_attenuations.cxx
+    imagesequence.cxx
 )
 target_link_libraries(
     dx2
