@@ -106,6 +106,7 @@ class Detector {
 public:
   Detector() = default;
   Detector(json detector_data);
+  Detector(std::vector<Panel> panels);
   json to_json() const;
   std::vector<Panel> panels() const;
   std::optional<intersection> get_ray_intersection(const Vector3d &s1) const;

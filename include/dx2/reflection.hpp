@@ -316,27 +316,6 @@ private:
   template <typename T>
   struct is_column_predicate<ColumnPredicate<T>> : std::true_type {};
 
-  /**
-   * @brief Generate a pseudo-random UUID-like identifier.
-   *
-   * This function replicates the behaviour of the Python function
-   * `ersatz_uuid4` from the dxtbx library. It generates a 128-bit
-   * random value and formats it as a UUID-style string using
-   * little-endian byte order, without enforcing RFC 4122 compliance.
-   *
-   * The output is a 36-character string in the format:
-   * `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, where each `x` is a
-   * hexadecimal digit.
-   *
-   * @return A string representing the generated UUID-like identifier.
-   *
-   * @note This function does not set the version or variant bits as
-   *       specified in RFC 4122. It is intended for internal use where
-   *       uniqueness is sufficient, and compliance with UUID standards
-   *       is unnecessary.
-   */
-  std::string ersatz_uuid4() const;
-
 public:
 #pragma region Constructors
   /// Re-exported type aliase for convenience
