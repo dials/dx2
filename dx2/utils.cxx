@@ -1,9 +1,9 @@
 #include "dx2/utils.hpp"
 #include <Eigen/Dense>
+#include <iomanip>
 #include <math.h>
 #include <random>
 #include <sstream>
-#include <iomanip>
 
 using Eigen::Vector3d;
 
@@ -23,24 +23,24 @@ double angle_between_vectors_degrees(Vector3d v1, Vector3d v2) {
 }
 
 /**
-   * @brief Generate a pseudo-random UUID-like identifier.
-   *
-   * This function replicates the behaviour of the Python function
-   * `ersatz_uuid4` from the dxtbx library. It generates a 128-bit
-   * random value and formats it as a UUID-style string using
-   * little-endian byte order, without enforcing RFC 4122 compliance.
-   *
-   * The output is a 36-character string in the format:
-   * `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, where each `x` is a
-   * hexadecimal digit.
-   *
-   * @return A string representing the generated UUID-like identifier.
-   *
-   * @note This function does not set the version or variant bits as
-   *       specified in RFC 4122. It is intended for internal use where
-   *       uniqueness is sufficient, and compliance with UUID standards
-   *       is unnecessary.
-   */
+ * @brief Generate a pseudo-random UUID-like identifier.
+ *
+ * This function replicates the behaviour of the Python function
+ * `ersatz_uuid4` from the dxtbx library. It generates a 128-bit
+ * random value and formats it as a UUID-style string using
+ * little-endian byte order, without enforcing RFC 4122 compliance.
+ *
+ * The output is a 36-character string in the format:
+ * `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, where each `x` is a
+ * hexadecimal digit.
+ *
+ * @return A string representing the generated UUID-like identifier.
+ *
+ * @note This function does not set the version or variant bits as
+ *       specified in RFC 4122. It is intended for internal use where
+ *       uniqueness is sufficient, and compliance with UUID standards
+ *       is unnecessary.
+ */
 std::string ersatz_uuid4() {
   // Generate 16 random bytes
   std::array<unsigned char, 16> bytes;

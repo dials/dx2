@@ -4,9 +4,9 @@
 #include <dx2/crystal.hpp>
 #include <dx2/detector.hpp>
 #include <dx2/goniometer.hpp>
+#include <dx2/imagesequence.hpp>
 #include <dx2/scan.hpp>
 #include <dx2/utils.hpp>
-#include <dx2/imagesequence.hpp>
 #include <nlohmann/json.hpp>
 
 using Eigen::Vector3d;
@@ -123,8 +123,7 @@ void Experiment<BeamType>::set_crystal(Crystal crystal) {
   _crystal = crystal;
 }
 
-template <class BeamType>
-void Experiment<BeamType>::set_beam(BeamType beam) {
+template <class BeamType> void Experiment<BeamType>::set_beam(BeamType beam) {
   _beam = beam;
 }
 
@@ -132,8 +131,7 @@ template <class BeamType> BeamType &Experiment<BeamType>::beam() {
   return _beam;
 }
 
-template <class BeamType>
-void Experiment<BeamType>::set_scan(Scan scan) {
+template <class BeamType> void Experiment<BeamType>::set_scan(Scan scan) {
   _scan = scan;
 }
 
@@ -161,7 +159,6 @@ void Experiment<BeamType>::set_identifier(std::string identifier) {
   _identifier = identifier;
 }
 
-template <class BeamType>
-void Experiment<BeamType>::generate_identifier() {
+template <class BeamType> void Experiment<BeamType>::generate_identifier() {
   _identifier = ersatz_uuid4();
 }
