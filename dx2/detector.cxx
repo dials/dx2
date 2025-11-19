@@ -74,23 +74,40 @@ void Panel::update(Matrix3d d) {
 }
 
 Panel::Panel(json panel_data) {
+  // We can either get an explicit origin or beam centre and distance
   Vector3d fast{{panel_data["fast_axis"][0], panel_data["fast_axis"][1],
                  panel_data["fast_axis"][2]}};
   Vector3d slow{{panel_data["slow_axis"][0], panel_data["slow_axis"][1],
-                 panel_data["slow_axis"][2]}};
-  Vector3d origin{{panel_data["origin"][0], panel_data["origin"][1],
-                   panel_data["origin"][2]}};
-  Matrix3d d_matrix{{fast[0], slow[0], origin[0]},
-                    {fast[1], slow[1], origin[1]},
-                    {fast[2], slow[2], origin[2]}};
-  origin_ = origin;
+                panel_data["slow_axis"][2]}};
   fast_axis_ = fast;
   slow_axis_ = slow;
-  normal_ = fast_axis_.cross(slow_axis_);
-  d_ = d_matrix;
-  D_ = d_.inverse();
   pixel_size_ = {{panel_data["pixel_size"][0], panel_data["pixel_size"][1]}};
   image_size_ = {{panel_data["image_size"][0], panel_data["image_size"][1]}};
+  Matrix3d d_matrix;
+
+  if (panel_data.contains("beam_center") && panel_data.contains("distance")){
+    double distance = panel_data["distance"];
+    std::array<double, 2> beam_center = panel_data["beam_center"];
+    origin_ = {0., 0., -1.0 * distance};
+    origin_ -= beam_center[0] * pixel_size_[0] * fast_axis_;
+    origin_ -= beam_center[1] * pixel_size_[1] * slow_axis_;
+    normal_ = fast_axis_.cross(slow_axis_);
+    d_matrix << fast_axis_[0], slow_axis_[0], origin_[0],
+                      fast_axis_[1], slow_axis_[1], origin_[1],
+                      fast_axis_[2], slow_axis_[2], origin_[2];
+  } else {
+    origin_ = Vector3d{{panel_data["origin"][0], panel_data["origin"][1],
+                    panel_data["origin"][2]}};
+    d_matrix << fast[0], slow[0], origin_[0],
+                fast[1], slow[1], origin_[1],
+                fast[2], slow[2], origin_[2];
+    //origin_ = origin;
+    normal_ = fast_axis_.cross(slow_axis_);
+  }
+  
+  d_ = d_matrix;
+  D_ = d_.inverse();
+  
   image_size_mm_ = {
       {image_size_[0] * pixel_size_[0], image_size_[1] * pixel_size_[1]}};
   trusted_range_ = {
