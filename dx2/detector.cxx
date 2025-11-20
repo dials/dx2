@@ -75,10 +75,22 @@ void Panel::update(Matrix3d d) {
 
 Panel::Panel(json panel_data) {
   // We can either get an explicit origin or beam centre and distance
+  std::vector<std::string> required_keys = {
+    "fast_axis", "slow_axis", "pixel_size","image_size", "trusted_range",
+    "type", "name","thickness", "raw_image_offset","gain", "pedestal","px_mm_strategy"
+  };
+  for (const auto &key : required_keys) {
+    if (panel_data.find(key) == panel_data.end()) {
+      throw std::invalid_argument("Key " + key +
+                                  " is missing from the input detector panel JSON");
+    }
+  }
   Vector3d fast{{panel_data["fast_axis"][0], panel_data["fast_axis"][1],
                  panel_data["fast_axis"][2]}};
   Vector3d slow{{panel_data["slow_axis"][0], panel_data["slow_axis"][1],
                 panel_data["slow_axis"][2]}};
+  fast.normalize();
+  slow.normalize();
   fast_axis_ = fast;
   slow_axis_ = slow;
   pixel_size_ = {{panel_data["pixel_size"][0], panel_data["pixel_size"][1]}};
@@ -96,6 +108,9 @@ Panel::Panel(json panel_data) {
                       fast_axis_[1], slow_axis_[1], origin_[1],
                       fast_axis_[2], slow_axis_[2], origin_[2];
   } else {
+    if (!panel_data.contains("origin")){
+      throw std::invalid_argument("Detector panel JSON must contain either origin or beam_center + distance");
+    }
     origin_ = Vector3d{{panel_data["origin"][0], panel_data["origin"][1],
                     panel_data["origin"][2]}};
     d_matrix << fast[0], slow[0], origin_[0],
