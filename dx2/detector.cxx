@@ -232,8 +232,11 @@ const std::map<std::string, Vector3d> axis_map = {
     {"-x", Vector3d(-1.0, 0.0, 0.0)},
     {"y", Vector3d(0.0, 1.0, 0.0)},
     {"-y", Vector3d(0.0, -1.0, 0.0)}};
-Panel::Panel(double distance, std::array<double, 2> beam_center,
-             std::array<double, 2> pixel_size, std::array<int, 2> image_size,
+
+Panel::Panel(double distance,// units mm
+             std::array<double, 2> beam_center, // units px
+             std::array<double, 2> pixel_size, // units mm
+             std::array<int, 2> image_size,
              const std::string &fast_axis, const std::string &slow_axis,
              double thickness, double mu)
     : pixel_size_(pixel_size), image_size_(image_size), thickness_(thickness),
