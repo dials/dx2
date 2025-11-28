@@ -76,19 +76,19 @@ void Panel::update(Matrix3d d) {
 Panel::Panel(json panel_data) {
   // We can either get an explicit origin or beam centre and distance
   std::vector<std::string> required_keys = {
-    "fast_axis", "slow_axis", "pixel_size","image_size", "trusted_range",
-    "type", "name","thickness", "raw_image_offset","gain", "pedestal","px_mm_strategy"
-  };
+      "fast_axis",        "slow_axis", "pixel_size", "image_size",
+      "trusted_range",    "type",      "name",       "thickness",
+      "raw_image_offset", "gain",      "pedestal",   "px_mm_strategy"};
   for (const auto &key : required_keys) {
     if (panel_data.find(key) == panel_data.end()) {
-      throw std::invalid_argument("Key " + key +
-                                  " is missing from the input detector panel JSON");
+      throw std::invalid_argument(
+          "Key " + key + " is missing from the input detector panel JSON");
     }
   }
   Vector3d fast{{panel_data["fast_axis"][0], panel_data["fast_axis"][1],
                  panel_data["fast_axis"][2]}};
   Vector3d slow{{panel_data["slow_axis"][0], panel_data["slow_axis"][1],
-                panel_data["slow_axis"][2]}};
+                 panel_data["slow_axis"][2]}};
   fast.normalize();
   slow.normalize();
   fast_axis_ = fast;
@@ -97,32 +97,31 @@ Panel::Panel(json panel_data) {
   image_size_ = {{panel_data["image_size"][0], panel_data["image_size"][1]}};
   Matrix3d d_matrix;
 
-  if (panel_data.contains("beam_center") && panel_data.contains("distance")){
+  if (panel_data.contains("beam_center") && panel_data.contains("distance")) {
     double distance = panel_data["distance"];
     std::array<double, 2> beam_center = panel_data["beam_center"];
     origin_ = {0., 0., -1.0 * distance};
     origin_ -= beam_center[0] * pixel_size_[0] * fast_axis_;
     origin_ -= beam_center[1] * pixel_size_[1] * slow_axis_;
     normal_ = fast_axis_.cross(slow_axis_);
-    d_matrix << fast_axis_[0], slow_axis_[0], origin_[0],
-                      fast_axis_[1], slow_axis_[1], origin_[1],
-                      fast_axis_[2], slow_axis_[2], origin_[2];
+    d_matrix << fast_axis_[0], slow_axis_[0], origin_[0], fast_axis_[1],
+        slow_axis_[1], origin_[1], fast_axis_[2], slow_axis_[2], origin_[2];
   } else {
-    if (!panel_data.contains("origin")){
-      throw std::invalid_argument("Detector panel JSON must contain either origin or beam_center + distance");
+    if (!panel_data.contains("origin")) {
+      throw std::invalid_argument("Detector panel JSON must contain either "
+                                  "origin or beam_center + distance");
     }
     origin_ = Vector3d{{panel_data["origin"][0], panel_data["origin"][1],
-                    panel_data["origin"][2]}};
-    d_matrix << fast[0], slow[0], origin_[0],
-                fast[1], slow[1], origin_[1],
-                fast[2], slow[2], origin_[2];
-    //origin_ = origin;
+                        panel_data["origin"][2]}};
+    d_matrix << fast[0], slow[0], origin_[0], fast[1], slow[1], origin_[1],
+        fast[2], slow[2], origin_[2];
+    // origin_ = origin;
     normal_ = fast_axis_.cross(slow_axis_);
   }
-  
+
   d_ = d_matrix;
   D_ = d_.inverse();
-  
+
   image_size_mm_ = {
       {image_size_[0] * pixel_size_[0], image_size_[1] * pixel_size_[1]}};
   trusted_range_ = {
@@ -233,12 +232,11 @@ const std::map<std::string, Vector3d> axis_map = {
     {"y", Vector3d(0.0, 1.0, 0.0)},
     {"-y", Vector3d(0.0, -1.0, 0.0)}};
 
-Panel::Panel(double distance,// units mm
+Panel::Panel(double distance,                   // units mm
              std::array<double, 2> beam_center, // units px
-             std::array<double, 2> pixel_size, // units mm
-             std::array<int, 2> image_size,
-             const std::string &fast_axis, const std::string &slow_axis,
-             double thickness, double mu)
+             std::array<double, 2> pixel_size,  // units mm
+             std::array<int, 2> image_size, const std::string &fast_axis,
+             const std::string &slow_axis, double thickness, double mu)
     : pixel_size_(pixel_size), image_size_(image_size), thickness_(thickness),
       mu_(mu) {
   if (valid_axes.find(fast_axis) == valid_axes.end()) {
