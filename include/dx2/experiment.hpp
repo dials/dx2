@@ -22,7 +22,7 @@ public:
   BeamType &beam();
   Scan &scan();
   Detector &detector();
-  const Crystal &crystal() const;
+  Crystal &crystal();
   void set_crystal(Crystal crystal);
   void set_beam(BeamType beam);
   void set_scan(Scan scan);
@@ -114,7 +114,7 @@ template <class BeamType> Detector &Experiment<BeamType>::detector() {
   return _detector;
 }
 
-template <class BeamType> const Crystal &Experiment<BeamType>::crystal() const {
+template <class BeamType> Crystal &Experiment<BeamType>::crystal() {
   return _crystal;
 }
 
