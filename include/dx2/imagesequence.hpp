@@ -12,6 +12,7 @@ public:
       std::string filename); // Constructor for non-MultiImage formats e.g. cbf.
   ImageSequence(json imagesequence_data);
   json to_json() const;
+  std::string filename() const;
 
 protected:
   int n_images_{};

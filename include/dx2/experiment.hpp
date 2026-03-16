@@ -23,6 +23,7 @@ public:
   Scan &scan();
   Detector &detector();
   Crystal &crystal();
+  ImageSequence &imagesequence();
   void set_crystal(Crystal crystal);
   void set_beam(BeamType beam);
   void set_scan(Scan scan);
@@ -116,6 +117,10 @@ template <class BeamType> Detector &Experiment<BeamType>::detector() {
 
 template <class BeamType> Crystal &Experiment<BeamType>::crystal() {
   return _crystal;
+}
+
+template <class BeamType> ImageSequence &Experiment<BeamType>::imagesequence() {
+  return _imagesequence;
 }
 
 template <class BeamType>
