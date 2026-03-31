@@ -27,6 +27,7 @@ public:
            Vector3d polarization_normal, double polarization_fraction,
            double flux, double transmission, double sample_to_source_distance);
   Vector3d get_polarization_normal() const;
+  double get_polarization_fraction() const;
   Vector3d get_sample_to_source_direction() const;
 
 protected:

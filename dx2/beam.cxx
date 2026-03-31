@@ -73,6 +73,10 @@ Vector3d BeamBase::get_polarization_normal() const {
   return polarization_normal_;
 }
 
+double BeamBase::get_polarization_fraction() const {
+  return polarization_fraction_;
+}
+
 Vector3d BeamBase::get_sample_to_source_direction() const {
   return sample_to_source_direction_;
 }
