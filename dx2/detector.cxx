@@ -148,7 +148,7 @@ Panel::get_ray_intersection(const Vector3d &s1) const {
       pxy[1] > image_size_mm_[1]) {
     return {};
   }
-  return pxy; // in mmm
+  return pxy; // in mm
 }
 
 std::array<double, 2> Panel::px_to_mm(double x, double y) const {
