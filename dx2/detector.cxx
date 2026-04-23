@@ -151,6 +151,17 @@ Panel::get_ray_intersection(const Vector3d &s1) const {
   return pxy; // in mm
 }
 
+std::optional<std::array<double, 2>>
+Panel::get_ray_intersection_unbounded(const Vector3d &s1) const {
+  // Project s₁ into panel frame: v = D·s₁
+  // v[2] is the depth component; reject rays travelling away from the panel
+  Vector3d v = D_ * s1;
+  if (v[2] <= 0) {
+    return {};
+  }
+  return std::array<double, 2>{v[0] / v[2], v[1] / v[2]}; // in mm, unbounded
+}
+
 std::array<double, 2> Panel::px_to_mm(double x, double y) const {
   double x1 = x * pixel_size_[0];
   double x2 = y * pixel_size_[1];
