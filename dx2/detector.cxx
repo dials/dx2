@@ -166,20 +166,28 @@ Matrix3d Panel::get_d_matrix() const { return d_; }
 Matrix3d Panel::get_D_matrix() const { return D_; }
 
 std::optional<std::array<double, 2>>
-Panel::get_ray_intersection(const Vector3d &s1) const {
+Panel::get_ray_intersection_unbounded(const Vector3d &s1) const {
+  // Project s₁ into panel frame: v = D·s₁
+  // v[2] is the depth component; reject rays travelling away from the panel
   Vector3d v = D_ * s1;
   if (v[2] <= 0) {
     return {};
   }
-  std::array<double, 2> pxy;
-  pxy[0] = v[0] / v[2];
-  pxy[1] = v[1] / v[2];
-  /** Check if the coordinate is invalid */
-  if (pxy[0] < 0 || pxy[1] < 0 || pxy[0] > image_size_mm_[0] ||
-      pxy[1] > image_size_mm_[1]) {
+  return std::array<double, 2>{v[0] / v[2], v[1] / v[2]}; // in mm, unbounded
+}
+
+std::optional<std::array<double, 2>>
+Panel::get_ray_intersection(const Vector3d &s1) const {
+  // Use unbounded projection, then clip to the physical panel extent
+  auto pxy = get_ray_intersection_unbounded(s1);
+  if (!pxy) {
     return {};
   }
-  return pxy; // in mmm
+  if ((*pxy)[0] < 0 || (*pxy)[1] < 0 || (*pxy)[0] > image_size_mm_[0] ||
+      (*pxy)[1] > image_size_mm_[1]) {
+    return {};
+  }
+  return pxy; // in mm
 }
 
 std::array<double, 2> Panel::px_to_mm(double x, double y) const {

@@ -52,6 +52,8 @@ public:
   Vector3d get_lab_coord(double x_mm, double y_mm) const;
   std::optional<std::array<double, 2>>
   get_ray_intersection(const Vector3d &s1) const;
+  std::optional<std::array<double, 2>>
+  get_ray_intersection_unbounded(const Vector3d &s1) const;
   std::array<double, 2> get_pixel_size() const;
   json to_json() const;
   Vector3d get_origin() const;
