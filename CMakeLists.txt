@@ -21,7 +21,7 @@ find_package(HDF5 REQUIRED)
 find_package(gemmi CONFIG REQUIRED)
 find_package(nlohmann_json 3.11.3 REQUIRED)
 find_package(fmt 11.0 REQUIRED)
-find_package(Eigen3 3.4 REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # mdspan and GTest can use FetchContent as fallback
 set(FETCHCONTENT_QUIET OFF)
