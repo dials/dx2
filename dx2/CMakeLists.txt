@@ -1,5 +1,6 @@
 add_library(
     dx2
+    utils.cxx
     reflection.cxx
     h5/h5read_processed.cxx
     h5/h5write.cxx
@@ -9,6 +10,7 @@ add_library(
     goniometer.cxx
     scan.cxx
     detector_attenuations.cxx
+    imagesequence.cxx
 )
 target_link_libraries(
     dx2

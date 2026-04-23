@@ -72,14 +72,14 @@ public:
 
 protected:
   // panel_frame items
-  Vector3d origin_{{0.0, 0.0, 100.0}}; // needs to be set
+  Vector3d origin_{{0.0, 0.0, 100.0}}; // needs to be set // units mm
   Vector3d fast_axis_{{1.0, 0.0, 0.0}};
   Vector3d slow_axis_{{0.0, 1.0, 0.0}};
   Vector3d normal_{{0.0, 0.0, 1.0}};
   Matrix3d d_{{1, 0, 0}, {0, 1, 0}, {0, 0, 100.0}};
   Matrix3d D_{{1, 0, 0}, {0, 1, 0}, {0, 0, 0.01}};
   //  panel data
-  std::array<double, 2> pixel_size_{{0.075, 0.075}};
+  std::array<double, 2> pixel_size_{{0.075, 0.075}}; // units mm
   std::array<int, 2> image_size_{{0, 0}};
   std::array<double, 2> image_size_mm_{{0, 0}};
   std::array<double, 2> trusted_range_{0.0, 65536.0};
@@ -108,6 +108,7 @@ class Detector {
 public:
   Detector() = default;
   Detector(json detector_data);
+  Detector(std::vector<Panel> panels);
   json to_json() const;
   std::vector<Panel> panels() const;
   std::optional<intersection> get_ray_intersection(const Vector3d &s1) const;

@@ -4,6 +4,7 @@
  */
 
 #include "dx2/reflection.hpp"
+#include "dx2/utils.hpp"
 #include <algorithm>
 #include <chrono>
 #include <unordered_set>
@@ -141,32 +142,6 @@ size_t ReflectionTable::get_row_count() const {
 void ReflectionTable::merge_into_set(std::unordered_set<size_t> &set,
                                      const std::vector<size_t> &rows) const {
   set.insert(rows.begin(), rows.end());
-}
-
-std::string ReflectionTable::ersatz_uuid4() const {
-  // Generate 16 random bytes
-  std::array<unsigned char, 16> bytes;
-  std::random_device rd;
-  std::uniform_int_distribution<int> dist(0, 255);
-  for (auto &b : bytes) {
-    b = static_cast<unsigned char>(dist(rd));
-  }
-
-  // Convert bytes to a single 128-bit hex string (little endian)
-  std::ostringstream oss;
-  for (auto it = bytes.rbegin(); it != bytes.rend(); ++it) {
-    oss << std::hex << std::setw(2) << std::setfill('0')
-        << static_cast<int>(*it);
-  }
-  std::string hex = oss.str();
-
-  // Format as UUID: 8-4-4-4-12
-  std::ostringstream uuid;
-  uuid << hex.substr(0, 8) << "-" << hex.substr(8, 4) << "-"
-       << hex.substr(12, 4) << "-" << hex.substr(16, 4) << "-"
-       << hex.substr(20, 12);
-
-  return uuid.str();
 }
 #pragma endregion
 
