@@ -4,7 +4,7 @@
 
 using Eigen::Vector3d;
 
-double angle_between_vectors_degrees(Vector3d v1, Vector3d v2) {
+inline double angle_between_vectors_degrees(Vector3d v1, Vector3d v2) {
   double l1 = v1.norm();
   double l2 = v2.norm();
   double dot = v1.dot(v2);
