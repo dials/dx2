@@ -59,52 +59,45 @@ add_subdirectory(tests)
 
 # #######################################################################
 # Installation
-# Only generate install rules when dx2 is the top-level project, so that
-# parent projects consuming dx2 via add_subdirectory/FetchContent don't
-# inherit them by default. Override with -DDX2_INSTALL=ON if needed.
-option(DX2_INSTALL "Generate dx2 install rules" ${PROJECT_IS_TOP_LEVEL})
+
+install(
+    TARGETS dx2
+    EXPORT DX2Targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    COMPONENT Runtime
+)
+
+install(
+    DIRECTORY include/dx2/
+    DESTINATION include/dx2
+    COMPONENT Runtime
+    FILES_MATCHING PATTERN "*.hpp"
+)
+
+# Export targets
+install(
+    EXPORT DX2Targets
+    FILE DX2Targets.cmake
+    NAMESPACE dx2::
+    DESTINATION lib/cmake/DX2
+)
 
 include(CMakePackageConfigHelpers)
-
-if(DX2_INSTALL)
-    install(
-        TARGETS dx2
-        EXPORT DX2Targets
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
-        COMPONENT Runtime
-    )
-
-    install(
-        DIRECTORY include/dx2/
-        DESTINATION include/dx2
-        COMPONENT Runtime
-        FILES_MATCHING PATTERN "*.hpp"
-    )
-
-    # Export targets
-    install(
-        EXPORT DX2Targets
-        FILE DX2Targets.cmake
-        NAMESPACE dx2::
-        DESTINATION lib/cmake/DX2
-    )
-
-    configure_package_config_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
-        "${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake"
-        INSTALL_DESTINATION "lib/cmake/DX2"
-    )
-    write_basic_package_version_file(
-        "${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake"
-        VERSION "${PROJECT_VERSION}"
-        COMPATIBILITY AnyNewerVersion
-    )
-    install(
-        FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake
-        DESTINATION lib/cmake/DX2
-    )
-endif()
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake"
+    INSTALL_DESTINATION "lib/cmake/DX2"
+)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY AnyNewerVersion
+)
+install(
+    FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/DX2Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/DX2ConfigVersion.cmake
+    DESTINATION lib/cmake/DX2
+)
