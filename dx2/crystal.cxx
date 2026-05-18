@@ -101,9 +101,11 @@ void Crystal::set_A_matrix(Matrix3d A) {
   U_ = A_ * B_.inverse();
 }
 
-gemmi::UnitCell Crystal::get_unit_cell() const { return unit_cell_; }
+const gemmi::UnitCell &Crystal::get_unit_cell() const { return unit_cell_; }
 
-gemmi::SpaceGroup Crystal::get_space_group() const { return space_group_; }
+const gemmi::SpaceGroup &Crystal::get_space_group() const {
+  return space_group_;
+}
 
 Matrix3d Crystal::get_A_matrix() const { return A_; }
 

@@ -312,7 +312,7 @@ json Detector::to_json() const {
   return detector_data;
 }
 
-std::vector<Panel> Detector::panels() const { return _panels; }
+const std::vector<Panel> &Detector::panels() const { return _panels; }
 
 void Detector::update(Matrix3d d) { _panels[0].update(d); }
 
