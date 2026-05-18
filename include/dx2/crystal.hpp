@@ -19,8 +19,8 @@ public:
   Crystal() = default;
   Crystal(Vector3d a, Vector3d b, Vector3d c, gemmi::SpaceGroup space_group);
   Crystal(json crystal_data);
-  gemmi::UnitCell get_unit_cell() const;
-  gemmi::SpaceGroup get_space_group() const;
+  const gemmi::UnitCell &get_unit_cell() const;
+  const gemmi::SpaceGroup &get_space_group() const;
   Matrix3d get_A_matrix() const;
   Matrix3d get_U_matrix() const;
   Matrix3d get_B_matrix() const;

@@ -67,4 +67,4 @@ json ImageSequence::to_json() const {
   return imageset_data;
 }
 
-std::string ImageSequence::filename() const { return filename_; }
+const std::string &ImageSequence::filename() const { return filename_; }
