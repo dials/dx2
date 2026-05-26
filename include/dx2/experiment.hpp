@@ -8,24 +8,27 @@
 #include <dx2/scan.hpp>
 #include <dx2/utils.hpp>
 #include <nlohmann/json.hpp>
+#include <variant>
 
 using Eigen::Vector3d;
 using json = nlohmann::json;
 
-template <class BeamType> class Experiment {
+using Beam = std::variant<MonochromaticBeam, PolychromaticBeam>
+
+class Experiment {
 public:
   Experiment() = default;
   Experiment(json experiment_data);
   json to_json() const;
   const std::string &identifier() const;
   const Goniometer &goniometer() const;
-  BeamType &beam();
+  const Beam& beam() const;
   Scan &scan();
   Detector &detector();
   Crystal &crystal();
   ImageSequence &imagesequence();
   void set_crystal(Crystal crystal);
-  void set_beam(BeamType beam);
+  void set_beam(Beam beam);
   void set_scan(Scan scan);
   void set_detector(Detector detector);
   void set_goniometer(Goniometer goniometer);
@@ -34,7 +37,7 @@ public:
   void generate_identifier();
 
 protected:
-  BeamType _beam{};
+  Beam _beam{};
   Scan _scan{};
   Goniometer _goniometer{};
   Detector _detector{};
@@ -43,11 +46,25 @@ protected:
   std::string _identifier{};
 };
 
-template <class BeamType>
-Experiment<BeamType>::Experiment(json experiment_data) {
+Beam make_beam_from_json(const json& beam_data)
+{
+    std::string type = beam_data["__id__"];
+
+    if (type == "monochromatic") {
+        return MonochromaticBeam(beam_data);
+    }
+    else if (type == "polychromatic") {
+        return PolychromaticBeam(beam_data);
+    }
+    else {
+        throw std::runtime_error("Unknown beam id: " + type);
+    }
+}
+
+Experiment(json experiment_data) {
   std::string identifier = experiment_data["experiment"][0]["identifier"];
   json beam_data = experiment_data["beam"][0];
-  BeamType beam = BeamType(beam_data);
+  Beam beam = make_beam_from_json(beam_data);
   json scan_data = experiment_data["scan"][0];
   Scan scan(scan_data);
   json gonio_data = experiment_data["goniometer"][0];
@@ -55,10 +72,10 @@ Experiment<BeamType>::Experiment(json experiment_data) {
   json detector_data = experiment_data["detector"][0];
   Detector detector(detector_data);
   this->_identifier = identifier;
-  this->_beam = beam;
-  this->_scan = scan;
-  this->_goniometer = gonio;
-  this->_detector = detector;
+  this->_beam = std::move(beam);
+  this->_scan = std::move(scan);
+  this->_goniometer = std::move(gonio);
+  this->_detector = std::move(detector);
   // Save the imageset json to propagate when saving to file.
   json imagesequence_data = experiment_data["imageset"][0];
   ImageSequence imagesequence(imagesequence_data);
@@ -72,7 +89,16 @@ Experiment<BeamType>::Experiment(json experiment_data) {
   }
 }
 
-template <class BeamType> json Experiment<BeamType>::to_json() const {
+
+json to_json(const Beam& beam)
+{
+    return std::visit([](const auto& b) {
+        return b.to_json();
+    }, beam);
+}
+
+
+json Experiment::to_json() const {
   // save this experiment as an example experiment list
   json elist_out; // a list of potentially multiple experiments
   elist_out["__id__"] = "ExperimentList";
@@ -89,7 +115,7 @@ template <class BeamType> json Experiment<BeamType>::to_json() const {
   // add the the actual models
   elist_out["scan"] = std::array<json, 1>{_scan.to_json()};
   elist_out["goniometer"] = std::array<json, 1>{_goniometer.to_json()};
-  elist_out["beam"] = std::array<json, 1>{_beam.to_json()};
+  elist_out["beam"] = std::array<json, 1>{to_json(_beam)};
   elist_out["detector"] = std::array<json, 1>{_detector.to_json()};
   elist_out["imageset"] = std::array<json, 1>{_imagesequence.to_json()};
 
@@ -104,66 +130,62 @@ template <class BeamType> json Experiment<BeamType>::to_json() const {
   return elist_out;
 }
 
-template <class BeamType> Scan &Experiment<BeamType>::scan() { return _scan; }
+Scan &Experiment::scan() { return _scan; }
 
-template <class BeamType>
-const Goniometer &Experiment<BeamType>::goniometer() const {
+const Goniometer &Experiment::goniometer() const {
   return _goniometer;
 }
 
-template <class BeamType> Detector &Experiment<BeamType>::detector() {
+Detector &Experiment::detector() {
   return _detector;
 }
 
-template <class BeamType> Crystal &Experiment<BeamType>::crystal() {
+Crystal &Experiment::crystal() {
   return _crystal;
 }
 
-template <class BeamType> ImageSequence &Experiment<BeamType>::imagesequence() {
+ImageSequence &Experiment::imagesequence() {
   return _imagesequence;
 }
 
-template <class BeamType>
-void Experiment<BeamType>::set_crystal(Crystal crystal) {
+
+void Experiment::set_crystal(Crystal crystal) {
   _crystal = crystal;
 }
 
-template <class BeamType> void Experiment<BeamType>::set_beam(BeamType beam) {
+void Experiment::set_beam(Beam beam) {
   _beam = beam;
 }
 
-template <class BeamType> BeamType &Experiment<BeamType>::beam() {
+const Beam& Experiment::beam() const {
   return _beam;
 }
 
-template <class BeamType> void Experiment<BeamType>::set_scan(Scan scan) {
+void Experiment::set_scan(Scan scan) {
   _scan = scan;
 }
 
-template <class BeamType>
-void Experiment<BeamType>::set_detector(Detector detector) {
+
+void Experiment::set_detector(Detector detector) {
   _detector = detector;
 }
 
-template <class BeamType>
-void Experiment<BeamType>::set_goniometer(Goniometer goniometer) {
+void Experiment::set_goniometer(Goniometer goniometer) {
   _goniometer = goniometer;
 }
 
-template <class BeamType>
-void Experiment<BeamType>::set_imagesequence(ImageSequence imagesequence) {
+void Experiment::set_imagesequence(ImageSequence imagesequence) {
   _imagesequence = imagesequence;
 }
 
-template <class BeamType>
-const std::string &Experiment<BeamType>::identifier() const {
+const std::string &Experiment::identifier() const {
   return _identifier;
 }
-template <class BeamType>
-void Experiment<BeamType>::set_identifier(std::string identifier) {
+
+void Experiment::set_identifier(std::string identifier) {
   _identifier = identifier;
 }
 
-template <class BeamType> void Experiment<BeamType>::generate_identifier() {
+void Experiment::generate_identifier() {
   _identifier = ersatz_uuid4();
 }
