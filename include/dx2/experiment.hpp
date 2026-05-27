@@ -27,6 +27,7 @@ public:
   Detector &detector();
   Crystal &crystal();
   ImageSequence &imagesequence();
+  MonochromaticBeam& monochromatic_beam();
   void set_crystal(Crystal crystal);
   void set_beam(Beam beam);
   void set_scan(Scan scan);
@@ -45,3 +46,5 @@ protected:
   ImageSequence _imagesequence{};
   std::string _identifier{};
 };
+
+MonochromaticBeam& require_monochromatic(Beam& beam);
