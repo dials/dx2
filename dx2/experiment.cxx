@@ -1,24 +1,10 @@
 #include <dx2/experiment.hpp>
-
-Beam make_beam_from_json(const json& beam_data)
-{
-    std::string type = beam_data["__id__"];
-
-    if (type == "monochromatic") {
-        return MonochromaticBeam(beam_data);
-    }
-    else if (type == "polychromatic") {
-        return PolychromaticBeam(beam_data);
-    }
-    else {
-        throw std::runtime_error("Unknown beam id: " + type);
-    }
-}
+#include <dx2/beam_io.hpp>
 
 Experiment::Experiment(json experiment_data) {
   std::string identifier = experiment_data["experiment"][0]["identifier"];
   json beam_data = experiment_data["beam"][0];
-  Beam beam = make_beam_from_json(beam_data);
+  Beam beam = beam_io::from_json(beam_data);
   json scan_data = experiment_data["scan"][0];
   Scan scan(scan_data);
   json gonio_data = experiment_data["goniometer"][0];
@@ -44,14 +30,6 @@ Experiment::Experiment(json experiment_data) {
 }
 
 
-json beam_to_json(const Beam& beam)
-{
-    return std::visit([](const auto& b) {
-        return b.to_json();
-    }, beam);
-}
-
-
 json Experiment::to_json() const {
   // save this experiment as an example experiment list
   json elist_out; // a list of potentially multiple experiments
@@ -69,7 +47,7 @@ json Experiment::to_json() const {
   // add the the actual models
   elist_out["scan"] = std::array<json, 1>{_scan.to_json()};
   elist_out["goniometer"] = std::array<json, 1>{_goniometer.to_json()};
-  elist_out["beam"] = std::array<json, 1>{beam_to_json(_beam)};
+  elist_out["beam"] = std::array<json, 1>{beam_io::to_json(_beam)};
   elist_out["detector"] = std::array<json, 1>{_detector.to_json()};
   elist_out["imageset"] = std::array<json, 1>{_imagesequence.to_json()};
 
@@ -112,6 +90,10 @@ void Experiment::set_beam(Beam beam) {
 }
 
 Beam& Experiment::beam() {
+  return _beam;
+}
+
+const Beam& Experiment::beam() const {
   return _beam;
 }
 

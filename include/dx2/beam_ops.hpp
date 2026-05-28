@@ -1,3 +1,4 @@
+#pragma once
 #include "dx2/beam.hpp"
 
 namespace beam_ops {

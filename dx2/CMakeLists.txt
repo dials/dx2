@@ -13,6 +13,7 @@ add_library(
     imagesequence.cxx
     experiment.cxx
     beam_ops.cxx
+    beam_io.cxx
 )
 target_link_libraries(
     dx2
