@@ -108,7 +108,7 @@ void Experiment::set_crystal(Crystal crystal) {
 }
 
 void Experiment::set_beam(Beam beam) {
-  _beam = beam;
+  _beam = std::move(beam);
 }
 
 Beam& Experiment::beam() {
@@ -142,17 +142,4 @@ void Experiment::set_identifier(std::string identifier) {
 
 void Experiment::generate_identifier() {
   _identifier = ersatz_uuid4();
-}
-
-MonochromaticBeam& require_monochromatic(Beam& beam)
-{
-    if (auto* b = std::get_if<MonochromaticBeam>(&beam)) {
-        return *b;
-    }
-    throw std::invalid_argument("Beam must be monochromatic");
-}
-
-MonochromaticBeam& Experiment::monochromatic_beam()
-{
-    return require_monochromatic(_beam);
 }

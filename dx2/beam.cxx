@@ -22,7 +22,7 @@ BeamBase::BeamBase(Vector3d direction, double divergence,
       transmission_{transmission},
       sample_to_source_distance_{sample_to_source_distance} {}
 
-void BeamBase::init_from_json(json beam_data) {
+void BeamBase::init_from_json(const json& beam_data) {
   // Load values from a json object.
   // Allow these to not be present so we can load a simple json dict without all
   // these items.
@@ -110,7 +110,7 @@ MonochromaticBeam::MonochromaticBeam(Vector3d s0) {
 }
 
 // constructor from json data
-MonochromaticBeam::MonochromaticBeam(json beam_data) {
+MonochromaticBeam::MonochromaticBeam(const json& beam_data) {
   // minimal required keys
   std::vector<std::string> required_keys = {"wavelength"};
   for (const auto &key : required_keys) {
@@ -184,7 +184,7 @@ PolychromaticBeam::PolychromaticBeam(std::array<double, 2> wavelength_range,
 }
 
 // constructor from json data
-PolychromaticBeam::PolychromaticBeam(json beam_data) {
+PolychromaticBeam::PolychromaticBeam(const json& beam_data) {
   // minimal required keys
   std::vector<std::string> required_keys = {"wavelength_range"};
   for (const auto &key : required_keys) {

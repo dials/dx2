@@ -2,6 +2,7 @@
 #include <Eigen/Dense>
 #include <array>
 #include <nlohmann/json.hpp>
+#include <variant>
 
 using Eigen::Vector3d;
 using json = nlohmann::json;
@@ -31,7 +32,7 @@ public:
   Vector3d get_sample_to_source_direction() const;
 
 protected:
-  void init_from_json(json beam_data);
+  void init_from_json(const json& beam_data);
   void add_to_json(json &beam_data) const;
   Vector3d sample_to_source_direction_{0.0, 0.0,
                                        1.0}; // called direction_ in dxtbx
@@ -54,7 +55,7 @@ public:
                     double sigma_divergence, Vector3d polarization_normal,
                     double polarization_fraction, double flux,
                     double transmission, double sample_to_source_distance);
-  MonochromaticBeam(json beam_data);
+  MonochromaticBeam(const json& beam_data);
   json to_json(std::string probe) const;
   json to_json() const; // overload for default
   double get_wavelength() const;
@@ -95,7 +96,7 @@ public:
                     Vector3d polarization_normal, double polarization_fraction,
                     double flux, double transmission,
                     double sample_to_source_distance);
-  PolychromaticBeam(json beam_data);
+  PolychromaticBeam(const json& beam_data);
   json to_json(std::string probe) const;
   json to_json() const; // overload for default
   std::array<double, 2> get_wavelength_range() const;
@@ -104,3 +105,5 @@ public:
 protected:
   std::array<double, 2> wavelength_range_{{0.0, 0.0}};
 };
+
+using Beam = std::variant<MonochromaticBeam, PolychromaticBeam>;

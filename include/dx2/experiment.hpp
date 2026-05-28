@@ -8,26 +8,26 @@
 #include <dx2/scan.hpp>
 #include <dx2/utils.hpp>
 #include <nlohmann/json.hpp>
-#include <variant>
+
 
 using Eigen::Vector3d;
 using json = nlohmann::json;
-
-using Beam = std::variant<MonochromaticBeam, PolychromaticBeam>;
 
 class Experiment {
 public:
   Experiment() = default;
   Experiment(json experiment_data);
   json to_json() const;
+
+  Beam& beam();
+  const Beam& beam() const;
+
   const std::string &identifier() const;
   const Goniometer &goniometer() const;
-  Beam& beam();
   Scan &scan();
   Detector &detector();
   Crystal &crystal();
   ImageSequence &imagesequence();
-  MonochromaticBeam& monochromatic_beam();
   void set_crystal(Crystal crystal);
   void set_beam(Beam beam);
   void set_scan(Scan scan);
@@ -46,5 +46,3 @@ protected:
   ImageSequence _imagesequence{};
   std::string _identifier{};
 };
-
-MonochromaticBeam& require_monochromatic(Beam& beam);
