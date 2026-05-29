@@ -16,7 +16,7 @@ protected:
   std::filesystem::path test_file_path;
 
   void SetUp() override {
-    test_file_path = std::filesystem::current_path() / "data/cut_strong.refl";
+    test_file_path = std::filesystem::path(TEST_DATA_DIR) / "cut_strong.refl";
   }
 };
 
