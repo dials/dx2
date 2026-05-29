@@ -6,7 +6,7 @@ using json = nlohmann::json;
 
 namespace beam_io {
 
-Beam from_json(const json& beam_data);
-json to_json(const Beam& beam);
+Beam from_json(const json &beam_data);
+json to_json(const Beam &beam);
 
-}
+} // namespace beam_io

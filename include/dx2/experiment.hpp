@@ -9,18 +9,17 @@
 #include <dx2/utils.hpp>
 #include <nlohmann/json.hpp>
 
-
 using Eigen::Vector3d;
 using json = nlohmann::json;
 
 class Experiment {
 public:
   Experiment() = default;
-  Experiment(const json& experiment_data);
+  Experiment(const json &experiment_data);
   json to_json() const;
 
-  Beam& beam();
-  const Beam& beam() const;
+  Beam &beam();
+  const Beam &beam() const;
 
   const std::string &identifier() const;
   const Goniometer &goniometer() const;

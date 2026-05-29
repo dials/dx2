@@ -1,7 +1,7 @@
-#include <dx2/experiment.hpp>
 #include <dx2/beam_io.hpp>
+#include <dx2/experiment.hpp>
 
-Experiment::Experiment(const json& experiment_data) {
+Experiment::Experiment(const json &experiment_data) {
   std::string identifier = experiment_data["experiment"][0]["identifier"];
   json beam_data = experiment_data["beam"][0];
   Beam beam = beam_io::from_json(beam_data);
@@ -28,7 +28,6 @@ Experiment::Experiment(const json& experiment_data) {
     ;
   }
 }
-
 
 json Experiment::to_json() const {
   // save this experiment as an example experiment list
@@ -64,47 +63,25 @@ json Experiment::to_json() const {
 
 Scan &Experiment::scan() { return _scan; }
 
-const Goniometer &Experiment::goniometer() const {
-  return _goniometer;
-}
+const Goniometer &Experiment::goniometer() const { return _goniometer; }
 
-Detector &Experiment::detector() {
-  return _detector;
-}
+Detector &Experiment::detector() { return _detector; }
 
-Crystal &Experiment::crystal() {
-  return _crystal;
-}
+Crystal &Experiment::crystal() { return _crystal; }
 
-ImageSequence &Experiment::imagesequence() {
-  return _imagesequence;
-}
+ImageSequence &Experiment::imagesequence() { return _imagesequence; }
 
+void Experiment::set_crystal(Crystal crystal) { _crystal = crystal; }
 
-void Experiment::set_crystal(Crystal crystal) {
-  _crystal = crystal;
-}
+void Experiment::set_beam(Beam beam) { _beam = std::move(beam); }
 
-void Experiment::set_beam(Beam beam) {
-  _beam = std::move(beam);
-}
+Beam &Experiment::beam() { return _beam; }
 
-Beam& Experiment::beam() {
-  return _beam;
-}
+const Beam &Experiment::beam() const { return _beam; }
 
-const Beam& Experiment::beam() const {
-  return _beam;
-}
+void Experiment::set_scan(Scan scan) { _scan = scan; }
 
-void Experiment::set_scan(Scan scan) {
-  _scan = scan;
-}
-
-
-void Experiment::set_detector(Detector detector) {
-  _detector = detector;
-}
+void Experiment::set_detector(Detector detector) { _detector = detector; }
 
 void Experiment::set_goniometer(Goniometer goniometer) {
   _goniometer = goniometer;
@@ -114,14 +91,10 @@ void Experiment::set_imagesequence(ImageSequence imagesequence) {
   _imagesequence = imagesequence;
 }
 
-const std::string &Experiment::identifier() const {
-  return _identifier;
-}
+const std::string &Experiment::identifier() const { return _identifier; }
 
 void Experiment::set_identifier(std::string identifier) {
   _identifier = identifier;
 }
 
-void Experiment::generate_identifier() {
-  _identifier = ersatz_uuid4();
-}
+void Experiment::generate_identifier() { _identifier = ersatz_uuid4(); }
