@@ -6,7 +6,8 @@ namespace beam_ops {
 // constraints
 MonochromaticBeam& require_monochromatic(Beam&);
 const MonochromaticBeam& require_monochromatic(const Beam&);
-// similarly for other types in the variant
+PolychromaticBeam& require_polychromatic(Beam&);
+const PolychromaticBeam& require_polychromatic(const Beam&);
 
 // generic operations
 // e.g. anything that acts on all beam types.
