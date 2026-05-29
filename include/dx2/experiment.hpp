@@ -16,7 +16,7 @@ using json = nlohmann::json;
 class Experiment {
 public:
   Experiment() = default;
-  Experiment(json experiment_data);
+  Experiment(const json& experiment_data);
   json to_json() const;
 
   Beam& beam();

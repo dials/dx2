@@ -1,7 +1,7 @@
 #include <dx2/experiment.hpp>
 #include <dx2/beam_io.hpp>
 
-Experiment::Experiment(json experiment_data) {
+Experiment::Experiment(const json& experiment_data) {
   std::string identifier = experiment_data["experiment"][0]["identifier"];
   json beam_data = experiment_data["beam"][0];
   Beam beam = beam_io::from_json(beam_data);
