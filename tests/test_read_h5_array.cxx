@@ -13,7 +13,7 @@ protected:
   void SetUp() override {
     // Set the test file path (assumes the tests directory as the working
     // directory)
-    test_file_path = std::filesystem::current_path() / "data/cut_strong.refl";
+    test_file_path = std::filesystem::path(TEST_DATA_DIR) / "cut_strong.refl";
 
     // Create the empty dataset if it does not exist
     create_empty_dataset(test_file_path, "/dials/processing/empty_dataset");

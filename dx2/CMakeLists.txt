@@ -11,6 +11,9 @@ add_library(
     scan.cxx
     detector_attenuations.cxx
     imagesequence.cxx
+    experiment.cxx
+    beam_ops.cxx
+    beam_io.cxx
 )
 target_link_libraries(
     dx2
