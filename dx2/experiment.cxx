@@ -20,12 +20,12 @@ Experiment::Experiment(const json &experiment_data) {
   json imagesequence_data = experiment_data["imageset"][0];
   ImageSequence imagesequence(imagesequence_data);
   this->_imagesequence = imagesequence;
-  try { // We don't always have a crystal model e.g. before indexing.
-    json crystal_data = experiment_data["crystal"][0];
-    Crystal crystal(crystal_data);
-    this->_crystal = crystal;
-  } catch (...) {
-    ;
+  if (experiment_data.contains("crystal") &&
+      experiment_data["crystal"].is_array() &&
+      !experiment_data["crystal"].empty()) {
+      const json& crystal_data = experiment_data["crystal"][0];
+      Crystal crystal(crystal_data);
+      this->_crystal = crystal;
   }
 }
 
