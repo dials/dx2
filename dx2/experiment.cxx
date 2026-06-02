@@ -23,9 +23,9 @@ Experiment::Experiment(const json &experiment_data) {
   if (experiment_data.contains("crystal") &&
       experiment_data["crystal"].is_array() &&
       !experiment_data["crystal"].empty()) {
-      const json& crystal_data = experiment_data["crystal"][0];
-      Crystal crystal(crystal_data);
-      this->_crystal = crystal;
+    const json &crystal_data = experiment_data["crystal"][0];
+    Crystal crystal(crystal_data);
+    this->_crystal = crystal;
   }
 }
 
