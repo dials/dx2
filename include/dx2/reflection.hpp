@@ -378,6 +378,14 @@ public:
    * @brief Get a list of all column names in the table.
    */
   std::vector<std::string> get_column_names() const;
+
+  /**
+   * @brief Returns the number of rows (reflections) in the table.
+   *
+   * All columns are required to share the same row count, so this is the
+   * length of any column. Returns 0 if the table has no columns.
+   */
+  size_t size() const;
 #pragma endregion
 
 #pragma region Column Access

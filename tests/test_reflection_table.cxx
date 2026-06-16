@@ -173,6 +173,30 @@ TEST_F(ReflectionTableTest, AccessNonExistentColumn) {
 }
 #pragma endregion
 
+#pragma region Size
+TEST_F(ReflectionTableTest, SizeOfEmptyTableIsZero) {
+  ReflectionTable table;
+  EXPECT_EQ(table.size(), 0u);
+}
+
+TEST_F(ReflectionTableTest, SizeMatchesAddedColumnRowCount) {
+  ReflectionTable table;
+  std::vector<double> data{1.0, 2.0, 3.0, 4.0};
+  table.add_column("col", data);
+  EXPECT_EQ(table.size(), 4u);
+}
+
+TEST_F(ReflectionTableTest, SizeMatchesLoadedColumnExtent) {
+  ReflectionTable table(test_file_path.string());
+
+  auto col = table.column<double>("xyzobs.px.value");
+  ASSERT_TRUE(col.has_value());
+
+  EXPECT_EQ(table.size(), col->extent(0));
+  EXPECT_GT(table.size(), 0u);
+}
+#pragma endregion
+
 #pragma region Adding
 TEST_F(ReflectionTableTest, AddColumn1D) {
   ReflectionTable table;

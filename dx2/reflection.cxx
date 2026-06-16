@@ -129,6 +129,8 @@ std::vector<std::string> ReflectionTable::get_column_names() const {
   }
   return names;
 }
+
+size_t ReflectionTable::size() const { return get_row_count(); }
 #pragma endregion
 
 #pragma region Private Helper Methods
