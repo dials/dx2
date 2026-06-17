@@ -186,14 +186,11 @@ void ReflectionTable::write(std::string_view filename,
   // Suppress errors when opening non-existent files, groups, datasets..
   H5ErrorSilencer silencer;
 
-  // 🗂️ Ensure the file exists or create it before writing
-  h5utils::H5File file(H5Fopen(fname.c_str(), H5F_ACC_RDWR, H5P_DEFAULT));
+  // 🗂️ Create (or truncate) the file
+  h5utils::H5File file(
+      H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT));
   if (!file) {
-    file = h5utils::H5File(
-        H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT));
-    if (!file) {
-      throw std::runtime_error("Failed to create or open file: " + fname);
-    }
+    throw std::runtime_error("Failed to create or open file: " + fname);
   }
 
   // Open or create group

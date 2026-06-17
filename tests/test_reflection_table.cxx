@@ -377,6 +377,42 @@ TEST_F(ReflectionTableTest, WriteTableFromScratchAndReload) {
   std::filesystem::remove(temp_file);
 }
 
+TEST_F(ReflectionTableTest, WriteOverwritesExistingFile) {
+  std::filesystem::path temp_file =
+      std::filesystem::current_path() / "reflection_test_overwrite.h5";
+
+  // First write: a table with two columns ("id" and "extra")
+  {
+    ReflectionTable first;
+    first.add_column<int>("id", std::vector<int>{1, 2, 3});
+    first.add_column<int>("extra", std::vector<int>{10, 20, 30});
+    first.write(temp_file.string());
+  }
+
+  // Second write to the SAME path: a different table with only "id"
+  {
+    ReflectionTable second;
+    second.add_column<int>("id", std::vector<int>{7, 8});
+    second.write(temp_file.string());
+  }
+
+  // Reload and confirm the file reflects only the second table (overwrite,
+  // not update): "extra" should be gone and "id" should match the second write.
+  ReflectionTable loaded(temp_file.string());
+
+  auto extra = loaded.column<int>("extra");
+  EXPECT_FALSE(extra.has_value())
+      << "Stale 'extra' column survived - write did not overwrite the file";
+
+  auto id = loaded.column<int>("id");
+  ASSERT_TRUE(id.has_value());
+  ASSERT_EQ(id->extent(0), 2);
+  EXPECT_EQ((*id)(0, 0), 7);
+  EXPECT_EQ((*id)(1, 0), 8);
+
+  std::filesystem::remove(temp_file);
+}
+
 TEST_F(ReflectionTableTest, AddBooleanColumnFromVectorBool) {
   ReflectionTable table;
 
