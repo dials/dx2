@@ -308,6 +308,69 @@ TEST_F(ReflectionTableTest, AddDuplicateColumnThrows) {
   }
 }
 
+TEST_F(ReflectionTableTest, UpdateColumnReplacesData) {
+  ReflectionTable table;
+  table.add_column("col", std::vector<double>{1.0, 2.0, 3.0});
+
+  table.update_column("col", std::vector<double>{4.0, 5.0, 6.0});
+
+  auto col = table.column<double>("col");
+  ASSERT_TRUE(col.has_value());
+  ASSERT_EQ(col->extent(0), 3);
+  EXPECT_DOUBLE_EQ((*col)(0, 0), 4.0);
+  EXPECT_DOUBLE_EQ((*col)(1, 0), 5.0);
+  EXPECT_DOUBLE_EQ((*col)(2, 0), 6.0);
+}
+
+TEST_F(ReflectionTableTest, UpdateColumnThrowsIfMissing) {
+  ReflectionTable table;
+  table.add_column("col", std::vector<double>{1.0, 2.0, 3.0});
+
+  try {
+    table.update_column("missing", std::vector<double>{4.0, 5.0, 6.0});
+    FAIL() << "Expected std::runtime_error for missing column";
+  } catch (const std::runtime_error &e) {
+    std::cout << "[UpdateColumnThrowsIfMissing] Caught: " << e.what() << "\n";
+    EXPECT_TRUE(std::string(e.what()).find("not found") != std::string::npos);
+  } catch (...) {
+    FAIL() << "Expected std::runtime_error: column not found";
+  }
+}
+
+TEST_F(ReflectionTableTest, UpdateColumnRejectsMismatchedRowCount) {
+  ReflectionTable table;
+  table.add_column("a", std::vector<double>{1.0, 2.0, 3.0});
+  table.add_column("b", std::vector<double>{4.0, 5.0, 6.0});
+
+  try {
+    // 4 rows where the rest of the table has 3 - should throw
+    table.update_column("b", std::vector<double>{7.0, 8.0, 9.0, 10.0});
+    FAIL() << "Expected std::runtime_error due to row count mismatch";
+  } catch (const std::runtime_error &e) {
+    std::cout << "[UpdateColumnRejectsMismatchedRowCount] Caught: " << e.what()
+              << "\n";
+    EXPECT_TRUE(std::string(e.what()).find("Row count mismatch") !=
+                std::string::npos);
+  } catch (...) {
+    FAIL() << "Expected std::runtime_error: row count mismatch";
+  }
+}
+
+TEST_F(ReflectionTableTest, UpdateColumnPreservesOrder) {
+  ReflectionTable table;
+  table.add_column("a", std::vector<double>{1.0, 2.0});
+  table.add_column("b", std::vector<double>{3.0, 4.0});
+  table.add_column("c", std::vector<double>{5.0, 6.0});
+
+  table.update_column("b", std::vector<double>{30.0, 40.0});
+
+  auto names = table.get_column_names();
+  ASSERT_EQ(names.size(), 3u);
+  EXPECT_EQ(names[0], "a");
+  EXPECT_EQ(names[1], "b");
+  EXPECT_EQ(names[2], "c");
+}
+
 TEST_F(ReflectionTableTest, AddUnsupportedColumnTypeThrows) {
   ReflectionTable table;
 
