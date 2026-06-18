@@ -173,6 +173,30 @@ TEST_F(ReflectionTableTest, AccessNonExistentColumn) {
 }
 #pragma endregion
 
+#pragma region Size
+TEST_F(ReflectionTableTest, SizeOfEmptyTableIsZero) {
+  ReflectionTable table;
+  EXPECT_EQ(table.size(), 0u);
+}
+
+TEST_F(ReflectionTableTest, SizeMatchesAddedColumnRowCount) {
+  ReflectionTable table;
+  std::vector<double> data{1.0, 2.0, 3.0, 4.0};
+  table.add_column("col", data);
+  EXPECT_EQ(table.size(), 4u);
+}
+
+TEST_F(ReflectionTableTest, SizeMatchesLoadedColumnExtent) {
+  ReflectionTable table(test_file_path.string());
+
+  auto col = table.column<double>("xyzobs.px.value");
+  ASSERT_TRUE(col.has_value());
+
+  EXPECT_EQ(table.size(), col->extent(0));
+  EXPECT_GT(table.size(), 0u);
+}
+#pragma endregion
+
 #pragma region Adding
 TEST_F(ReflectionTableTest, AddColumn1D) {
   ReflectionTable table;
@@ -284,6 +308,69 @@ TEST_F(ReflectionTableTest, AddDuplicateColumnThrows) {
   }
 }
 
+TEST_F(ReflectionTableTest, UpdateColumnReplacesData) {
+  ReflectionTable table;
+  table.add_column("col", std::vector<double>{1.0, 2.0, 3.0});
+
+  table.update_column("col", std::vector<double>{4.0, 5.0, 6.0});
+
+  auto col = table.column<double>("col");
+  ASSERT_TRUE(col.has_value());
+  ASSERT_EQ(col->extent(0), 3);
+  EXPECT_DOUBLE_EQ((*col)(0, 0), 4.0);
+  EXPECT_DOUBLE_EQ((*col)(1, 0), 5.0);
+  EXPECT_DOUBLE_EQ((*col)(2, 0), 6.0);
+}
+
+TEST_F(ReflectionTableTest, UpdateColumnThrowsIfMissing) {
+  ReflectionTable table;
+  table.add_column("col", std::vector<double>{1.0, 2.0, 3.0});
+
+  try {
+    table.update_column("missing", std::vector<double>{4.0, 5.0, 6.0});
+    FAIL() << "Expected std::runtime_error for missing column";
+  } catch (const std::runtime_error &e) {
+    std::cout << "[UpdateColumnThrowsIfMissing] Caught: " << e.what() << "\n";
+    EXPECT_TRUE(std::string(e.what()).find("not found") != std::string::npos);
+  } catch (...) {
+    FAIL() << "Expected std::runtime_error: column not found";
+  }
+}
+
+TEST_F(ReflectionTableTest, UpdateColumnRejectsMismatchedRowCount) {
+  ReflectionTable table;
+  table.add_column("a", std::vector<double>{1.0, 2.0, 3.0});
+  table.add_column("b", std::vector<double>{4.0, 5.0, 6.0});
+
+  try {
+    // 4 rows where the rest of the table has 3 - should throw
+    table.update_column("b", std::vector<double>{7.0, 8.0, 9.0, 10.0});
+    FAIL() << "Expected std::runtime_error due to row count mismatch";
+  } catch (const std::runtime_error &e) {
+    std::cout << "[UpdateColumnRejectsMismatchedRowCount] Caught: " << e.what()
+              << "\n";
+    EXPECT_TRUE(std::string(e.what()).find("Row count mismatch") !=
+                std::string::npos);
+  } catch (...) {
+    FAIL() << "Expected std::runtime_error: row count mismatch";
+  }
+}
+
+TEST_F(ReflectionTableTest, UpdateColumnPreservesOrder) {
+  ReflectionTable table;
+  table.add_column("a", std::vector<double>{1.0, 2.0});
+  table.add_column("b", std::vector<double>{3.0, 4.0});
+  table.add_column("c", std::vector<double>{5.0, 6.0});
+
+  table.update_column("b", std::vector<double>{30.0, 40.0});
+
+  auto names = table.get_column_names();
+  ASSERT_EQ(names.size(), 3u);
+  EXPECT_EQ(names[0], "a");
+  EXPECT_EQ(names[1], "b");
+  EXPECT_EQ(names[2], "c");
+}
+
 TEST_F(ReflectionTableTest, AddUnsupportedColumnTypeThrows) {
   ReflectionTable table;
 
@@ -350,6 +437,42 @@ TEST_F(ReflectionTableTest, WriteTableFromScratchAndReload) {
   }
 
   // Clean up
+  std::filesystem::remove(temp_file);
+}
+
+TEST_F(ReflectionTableTest, WriteOverwritesExistingFile) {
+  std::filesystem::path temp_file =
+      std::filesystem::current_path() / "reflection_test_overwrite.h5";
+
+  // First write: a table with two columns ("id" and "extra")
+  {
+    ReflectionTable first;
+    first.add_column<int>("id", std::vector<int>{1, 2, 3});
+    first.add_column<int>("extra", std::vector<int>{10, 20, 30});
+    first.write(temp_file.string());
+  }
+
+  // Second write to the SAME path: a different table with only "id"
+  {
+    ReflectionTable second;
+    second.add_column<int>("id", std::vector<int>{7, 8});
+    second.write(temp_file.string());
+  }
+
+  // Reload and confirm the file reflects only the second table (overwrite,
+  // not update): "extra" should be gone and "id" should match the second write.
+  ReflectionTable loaded(temp_file.string());
+
+  auto extra = loaded.column<int>("extra");
+  EXPECT_FALSE(extra.has_value())
+      << "Stale 'extra' column survived - write did not overwrite the file";
+
+  auto id = loaded.column<int>("id");
+  ASSERT_TRUE(id.has_value());
+  ASSERT_EQ(id->extent(0), 2);
+  EXPECT_EQ((*id)(0, 0), 7);
+  EXPECT_EQ((*id)(1, 0), 8);
+
   std::filesystem::remove(temp_file);
 }
 

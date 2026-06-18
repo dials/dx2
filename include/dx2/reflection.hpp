@@ -257,6 +257,20 @@ private:
     return col.get_name() == name && col.get_type() == typeid(T);
   }
 
+  /// Throw if type T is not supported by the HDF5 backend.
+  template <typename T> void ensure_supported_type() const {
+    const auto &registry = h5dispatch::get_supported_types();
+    bool supported = std::any_of(registry.begin(), registry.end(),
+                                 [](const h5dispatch::H5TypeInfo &info) {
+                                   return info.cpp_type == typeid(T);
+                                 });
+    if (!supported) {
+      throw std::runtime_error(
+          "Attempted to add column with unsupported type: " +
+          std::string(typeid(T).name()));
+    }
+  }
+
   /**
    * @brief Merges a vector of row indices into a set.
    *
@@ -378,6 +392,14 @@ public:
    * @brief Get a list of all column names in the table.
    */
   std::vector<std::string> get_column_names() const;
+
+  /**
+   * @brief Returns the number of rows (reflections) in the table.
+   *
+   * All columns are required to share the same row count, so this is the
+   * length of any column. Returns 0 if the table has no columns.
+   */
+  size_t size() const;
 #pragma endregion
 
 #pragma region Column Access
@@ -559,17 +581,7 @@ public:
       }
 
       // Check if type T is supported
-      const auto &registry = h5dispatch::get_supported_types();
-      bool supported = std::any_of(registry.begin(), registry.end(),
-                                   [](const h5dispatch::H5TypeInfo &info) {
-                                     return info.cpp_type == typeid(T);
-                                   });
-
-      if (!supported) {
-        throw std::runtime_error(
-            "Attempted to add column with unsupported type: " +
-            std::string(typeid(T).name()));
-      }
+      ensure_supported_type<T>();
 
       // Ensure row count consistency
       if (!data.empty() && col->get_shape()[0] != get_row_count()) {
@@ -615,6 +627,82 @@ public:
   void add_column(const std::string &name, const size_t rows, const size_t cols,
                   const std::vector<T> &column_data) {
     add_column(name, std::vector<size_t>{rows, cols}, column_data);
+  }
+
+  /**
+   * @brief Replaces the data of an existing column.
+   *
+   * Unlike `add_column`, this requires a column of the given name to
+   * already exist and replaces it in place (preserving column order).
+   * The replacement is wholesale, so the element type and shape may
+   * change, but the new row count must match the rest of the table.
+   *
+   * @tparam T The data type of the column.
+   * @param name The name of the (existing) column to update.
+   * @param shape A vector describing the shape of the new column data.
+   * @param column_data A flat vector of `T` values for the column.
+   *
+   * @throws std::runtime_error if no column with `name` exists, the type
+   * is unsupported, or the row count does not match the other columns.
+   */
+  template <typename T>
+  void update_column(const std::string &name, const std::vector<size_t> &shape,
+                     const std::vector<T> &column_data) {
+    // Check if the type T is a bool. If so, convert to BoolEnum and update.
+    if constexpr (std::is_same_v<T, bool>) {
+      std::vector<h5dispatch::BoolEnum> converted(column_data.size());
+      for (size_t i = 0; i < column_data.size(); ++i) {
+        converted[i] = column_data[i] ? h5dispatch::BoolEnum::TRUE
+                                      : h5dispatch::BoolEnum::FALSE;
+      }
+      update_column<h5dispatch::BoolEnum>(name, shape, converted);
+    } else {
+      // Locate the existing column (strict: it must already exist)
+      auto it = std::find_if(data.begin(), data.end(),
+                             [&](const std::unique_ptr<ColumnBase> &c) {
+                               return c->get_name() == name;
+                             });
+      if (it == data.end()) {
+        throw std::runtime_error("Column not found for update: " + name);
+      }
+
+      auto col = std::make_unique<TypedColumn<T>>(name, shape, column_data);
+
+      // Check if type T is supported
+      ensure_supported_type<T>();
+
+      // Ensure row count consistency with the other columns in the table
+      for (const auto &other : data) {
+        if (other->get_name() != name) {
+          if (col->get_shape()[0] != other->get_shape()[0]) {
+            throw std::runtime_error(
+                "Row count mismatch when updating column: " + name);
+          }
+          break;
+        }
+      }
+
+      // Replace in place, preserving the column's position
+      *it = std::move(col);
+    }
+  }
+
+  /**
+   * @brief Replaces an existing 1D column.
+   */
+  template <typename T>
+  void update_column(const std::string &name,
+                     const std::vector<T> &column_data) {
+    update_column(name, std::vector<size_t>{column_data.size()}, column_data);
+  }
+
+  /**
+   * @brief Replaces an existing 2D column.
+   */
+  template <typename T>
+  void update_column(const std::string &name, const size_t rows,
+                     const size_t cols, const std::vector<T> &column_data) {
+    update_column(name, std::vector<size_t>{rows, cols}, column_data);
   }
 #pragma endregion
 
