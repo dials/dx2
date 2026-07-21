@@ -21,6 +21,23 @@ You can then build with `make`, and run a test with `./tests/test_crystal`.
 You can enable debugging printout by setting the `DX2_DEBUG` environment
 variable before running.
 
+## Documentation
+
+API documentation is generated from the Doxygen comments in the source
+by Doxygen + Sphinx (via Breathe and Exhale) and published to GitHub
+Pages on every push to `main`.
+
+To build it locally you need the `doxygen` and `graphviz` binaries
+(e.g. `conda install -c conda-forge doxygen graphviz`) plus the Python
+packages:
+
+```
+pip install -r docs/requirements.txt
+sphinx-build -b html docs docs/_build/html
+```
+
+Then open `docs/_build/html/index.html`.
+
 ## Writing And Running Tests
 
 See https://google.github.io/googletest/primer.html. The `tests` subdirectory
