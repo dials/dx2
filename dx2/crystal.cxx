@@ -39,6 +39,12 @@ Crystal::Crystal(Vector3d a, Vector3d b, Vector3d c,
   init_from_abc(a, b, c);
 }
 
+Crystal::Crystal(Matrix3d A, gemmi::SpaceGroup space_group)
+    : space_group_(space_group), A_(A) {
+  // input in reciprocal units
+  set_A_matrix(A);
+}
+
 Crystal::Crystal(json crystal_data) {
   std::vector<std::string> required_keys = {"real_space_a", "real_space_b",
                                             "real_space_c",
