@@ -80,6 +80,7 @@ exhale_args = {
     "doxygenStripFromPath": "..",
     # Let Exhale invoke Doxygen; the config below is fed to it on stdin.
     "createTreeView": True,
+    "contentsDirectives": False,
     "exhaleExecutesDoxygen": True,
     "exhaleDoxygenStdin": textwrap.dedent(
         """\
