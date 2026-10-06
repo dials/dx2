@@ -38,7 +38,7 @@ template <typename T> constexpr type_tag_t<T> type_tag{};
  */
 struct H5TypeInfo {
   std::type_index cpp_type; ///< The C++ type_index of the registered type
-  hid_t h5_native_type;     ///< The native HDF5 type (e.g. H5T_NATIVE_INT)
+  H5TypeRef h5_native_type; ///< The native HDF5 type (e.g. H5T_NATIVE_INT)
   H5T_class_t h5_class;     ///< HDF5 class (integer, float, etc.)
   size_t h5_size;           ///< Size in bytes
   H5T_sign_t h5_sign;       ///< Sign info for integers (signed/unsigned)
@@ -64,14 +64,15 @@ enum class BoolEnum : uint8_t { FALSE = 0, TRUE = 1 };
 inline const std::vector<H5TypeInfo> &get_supported_types() {
   static const H5Type bool_enum_type = create_hdf5_bool_enum_type();
   static const std::vector<H5TypeInfo> registry = {
-      {typeid(int), H5T_NATIVE_INT, H5T_INTEGER, sizeof(int), H5T_SGN_2},
-      {typeid(int64_t), H5T_NATIVE_LLONG, H5T_INTEGER, sizeof(int64_t),
+      {typeid(int), H5TypeRef{H5T_NATIVE_INT}, H5T_INTEGER, sizeof(int),
        H5T_SGN_2},
-      {typeid(uint64_t), H5T_NATIVE_ULLONG, H5T_INTEGER, sizeof(uint64_t),
-       H5T_SGN_NONE},
-      {typeid(double), H5T_NATIVE_DOUBLE, H5T_FLOAT, sizeof(double),
+      {typeid(int64_t), H5TypeRef{H5T_NATIVE_LLONG}, H5T_INTEGER,
+       sizeof(int64_t), H5T_SGN_2},
+      {typeid(uint64_t), H5TypeRef{H5T_NATIVE_ULLONG}, H5T_INTEGER,
+       sizeof(uint64_t), H5T_SGN_NONE},
+      {typeid(double), H5TypeRef{H5T_NATIVE_DOUBLE}, H5T_FLOAT, sizeof(double),
        H5T_SGN_ERROR},
-      {typeid(BoolEnum), bool_enum_type, H5T_ENUM, sizeof(uint8_t),
+      {typeid(BoolEnum), H5TypeRef{bool_enum_type}, H5T_ENUM, sizeof(uint8_t),
        H5T_SGN_NONE}};
   return registry;
 }
@@ -80,13 +81,14 @@ inline const std::vector<H5TypeInfo> &get_supported_types() {
  * @brief Returns the native HDF5 type corresponding to a given C++ type.
  *
  * The registry owns every returned id for the lifetime of the process.
- * Callers borrow it and must not close it or wrap it in an owning H5Type.
+ * Callers borrow it and must not close it; wrapping it in an owning
+ * H5Type does not compile.
  *
  * @tparam T The C++ type.
- * @return The HDF5 native type (hid_t), borrowed from the registry.
+ * @return The HDF5 native type, borrowed from the registry.
  * @throws std::runtime_error if the type is not in the registry.
  */
-template <typename T> hid_t get_h5_native_type() {
+template <typename T> H5TypeRef get_h5_native_type() {
   for (const auto &entry : get_supported_types()) {
     if (entry.cpp_type == typeid(T)) {
       return entry.h5_native_type;
