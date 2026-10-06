@@ -66,6 +66,9 @@ public:
   bool is_coord_valid_mm(const std::array<double, 2> xy) const;
   double get_mu() const;
   double get_thickness() const;
+  double get_resolution_at_pixel(const Vector3d &s0,
+                                 std::array<double, 2> xy) const;
+  double get_max_resolution_at_corners(const Vector3d &s0) const;
   void update(Matrix3d d);
   void set_correction_parameters(double thickness, double mu,
                                  bool parallax_correction);

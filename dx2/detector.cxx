@@ -19,6 +19,18 @@ double attenuation_length(double mu, double t0, Vector3d s1, Vector3d fast,
   return (1.0 / mu) - (t0 / cos_t + 1.0 / mu) * exp(-mu * t0 / cos_t);
 }
 
+inline double angle_safe(const Vector3d &a, const Vector3d &b) {
+  double den = a.norm() * b.norm();
+  if (den <= 0)
+    return 0.0;
+  double c = (a.dot(b)) / den;
+  if (c < -1)
+    c = -1;
+  else if (c > 1)
+    c = 1;
+  return std::acos(c);
+}
+
 std::array<double, 2> parallax_correction(double mu, double t0,
                                           std::array<double, 2> xy,
                                           Vector3d fast, Vector3d slow,
@@ -232,6 +244,24 @@ std::array<double, 2> Panel::mm_to_px(double x, double y) const {
 }
 
 std::array<double, 2> Panel::get_pixel_size() const { return pixel_size_; }
+
+double Panel::get_resolution_at_pixel(const Vector3d &s0,
+                                      std::array<double, 2> xy) const {
+  const double TINY_SINE_THETA = 1e-9;
+  std::array<double, 2> xy_mm = px_to_mm(xy[0], xy[1]);
+  Vector3d xyz = get_lab_coord(xy_mm[0], xy_mm[1]); // mm.
+  double sintheta = std::max(TINY_SINE_THETA, sin(0.5 * angle_safe(s0, xyz)));
+  return 1.0 / (2.0 * s0.norm() * sintheta);
+}
+
+double Panel::get_max_resolution_at_corners(const Vector3d &s0) const {
+  double n_fast = static_cast<double>(image_size_[0]);
+  double n_slow = static_cast<double>(image_size_[1]);
+  return std::min(std::min(get_resolution_at_pixel(s0, {0, 0}),
+                           get_resolution_at_pixel(s0, {0, n_slow})),
+                  std::min(get_resolution_at_pixel(s0, {n_fast, 0}),
+                           get_resolution_at_pixel(s0, {n_fast, n_slow})));
+}
 
 const std::set<std::string> valid_axes = {"x", "-x", "y", "-y"};
 const std::map<std::string, Vector3d> axis_map = {
