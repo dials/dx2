@@ -79,8 +79,11 @@ inline const std::vector<H5TypeInfo> &get_supported_types() {
 /**
  * @brief Returns the native HDF5 type corresponding to a given C++ type.
  *
+ * The registry owns every returned id for the lifetime of the process.
+ * Callers borrow it and must not close it or wrap it in an owning H5Type.
+ *
  * @tparam T The C++ type.
- * @return The HDF5 native type (hid_t).
+ * @return The HDF5 native type (hid_t), borrowed from the registry.
  * @throws std::runtime_error if the type is not in the registry.
  */
 template <typename T> hid_t get_h5_native_type() {

@@ -499,6 +499,50 @@ TEST_F(ReflectionTableTest, AddBooleanColumnFromVectorBool) {
                                 << expected << ", got " << actual;
   }
 }
+
+TEST_F(ReflectionTableTest, WriteBooleanColumnLeavesRegistryTypeOpen) {
+  std::filesystem::path temp_file =
+      std::filesystem::current_path() / "reflection_test_bool_registry.h5";
+
+  ReflectionTable table;
+  table.add_column("bools", std::vector<bool>{true, false, true});
+  table.write(temp_file.string());
+
+  // The registry owns the enum type; a write must only borrow it.
+  hid_t bool_type = h5dispatch::get_h5_native_type<ReflectionTable::BoolEnum>();
+  EXPECT_GT(H5Iis_valid(bool_type), 0)
+      << "Registry bool enum type was closed by a column write";
+
+  std::filesystem::remove(temp_file);
+}
+
+TEST_F(ReflectionTableTest, WriteBooleanColumnTwiceInOneProcess) {
+  const std::vector<bool> bool_data = {true, false, true, true, false};
+  const std::vector<std::filesystem::path> temp_files = {
+      std::filesystem::current_path() / "reflection_test_bool_first.h5",
+      std::filesystem::current_path() / "reflection_test_bool_second.h5"};
+
+  for (const auto &temp_file : temp_files) {
+    ReflectionTable table;
+    table.add_column("bools", bool_data);
+    table.write(temp_file.string());
+  }
+
+  for (const auto &temp_file : temp_files) {
+    ReflectionTable loaded(temp_file.string());
+    auto col_bool = loaded.column<ReflectionTable::BoolEnum>("bools");
+    ASSERT_TRUE(col_bool.has_value())
+        << "Boolean column missing from " << temp_file;
+    ASSERT_EQ(col_bool->extent(0), bool_data.size())
+        << "Row count mismatch in " << temp_file;
+    for (size_t i = 0; i < bool_data.size(); ++i) {
+      bool actual = (*col_bool)(i, 0) == ReflectionTable::BoolEnum::TRUE;
+      EXPECT_EQ(actual, bool_data[i])
+          << "Mismatch at index " << i << " in " << temp_file;
+    }
+    std::filesystem::remove(temp_file);
+  }
+}
 #pragma endregion
 
 #pragma region Selection
