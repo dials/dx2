@@ -14,9 +14,22 @@
 class ReflectionTableTest : public ::testing::Test {
 protected:
   std::filesystem::path test_file_path;
+  std::vector<std::filesystem::path> temp_files;
 
   void SetUp() override {
     test_file_path = std::filesystem::path(TEST_DATA_DIR) / "cut_strong.refl";
+  }
+
+  // Runs even when an ASSERT_* has returned early from the test body.
+  void TearDown() override {
+    for (const auto &path : temp_files) {
+      std::filesystem::remove(path);
+    }
+  }
+
+  // Returns a scratch path in the working directory, removed in TearDown.
+  std::filesystem::path temp_path(const std::string &name) {
+    return temp_files.emplace_back(std::filesystem::current_path() / name);
   }
 };
 
@@ -409,7 +422,7 @@ TEST_F(ReflectionTableTest, WriteTableFromScratchAndReload) {
 
   // Write to a temporary file
   std::filesystem::path temp_file =
-      std::filesystem::current_path() / "reflection_test_scratch_write.h5";
+      temp_path("reflection_test_scratch_write.h5");
   table.write(temp_file.string());
 
   // Reload from file
@@ -435,14 +448,10 @@ TEST_F(ReflectionTableTest, WriteTableFromScratchAndReload) {
     EXPECT_EQ(reloaded_ids[i], experiment_ids[i]);
     EXPECT_EQ(reloaded_identifiers[i], identifiers[i]);
   }
-
-  // Clean up
-  std::filesystem::remove(temp_file);
 }
 
 TEST_F(ReflectionTableTest, WriteOverwritesExistingFile) {
-  std::filesystem::path temp_file =
-      std::filesystem::current_path() / "reflection_test_overwrite.h5";
+  std::filesystem::path temp_file = temp_path("reflection_test_overwrite.h5");
 
   // First write: a table with two columns ("id" and "extra")
   {
@@ -472,8 +481,6 @@ TEST_F(ReflectionTableTest, WriteOverwritesExistingFile) {
   ASSERT_EQ(id->extent(0), 2);
   EXPECT_EQ((*id)(0, 0), 7);
   EXPECT_EQ((*id)(1, 0), 8);
-
-  std::filesystem::remove(temp_file);
 }
 
 TEST_F(ReflectionTableTest, AddBooleanColumnFromVectorBool) {
@@ -502,7 +509,7 @@ TEST_F(ReflectionTableTest, AddBooleanColumnFromVectorBool) {
 
 TEST_F(ReflectionTableTest, WriteBooleanColumnLeavesRegistryTypeOpen) {
   std::filesystem::path temp_file =
-      std::filesystem::current_path() / "reflection_test_bool_registry.h5";
+      temp_path("reflection_test_bool_registry.h5");
 
   ReflectionTable table;
   table.add_column("bools", std::vector<bool>{true, false, true});
@@ -512,23 +519,21 @@ TEST_F(ReflectionTableTest, WriteBooleanColumnLeavesRegistryTypeOpen) {
   hid_t bool_type = h5dispatch::get_h5_native_type<ReflectionTable::BoolEnum>();
   EXPECT_GT(H5Iis_valid(bool_type), 0)
       << "Registry bool enum type was closed by a column write";
-
-  std::filesystem::remove(temp_file);
 }
 
 TEST_F(ReflectionTableTest, WriteBooleanColumnTwiceInOneProcess) {
   const std::vector<bool> bool_data = {true, false, true, true, false};
-  const std::vector<std::filesystem::path> temp_files = {
-      std::filesystem::current_path() / "reflection_test_bool_first.h5",
-      std::filesystem::current_path() / "reflection_test_bool_second.h5"};
+  const std::vector<std::filesystem::path> paths = {
+      temp_path("reflection_test_bool_first.h5"),
+      temp_path("reflection_test_bool_second.h5")};
 
-  for (const auto &temp_file : temp_files) {
+  for (const auto &temp_file : paths) {
     ReflectionTable table;
     table.add_column("bools", bool_data);
     table.write(temp_file.string());
   }
 
-  for (const auto &temp_file : temp_files) {
+  for (const auto &temp_file : paths) {
     ReflectionTable loaded(temp_file.string());
     auto col_bool = loaded.column<ReflectionTable::BoolEnum>("bools");
     ASSERT_TRUE(col_bool.has_value())
@@ -540,7 +545,6 @@ TEST_F(ReflectionTableTest, WriteBooleanColumnTwiceInOneProcess) {
       EXPECT_EQ(actual, bool_data[i])
           << "Mismatch at index " << i << " in " << temp_file;
     }
-    std::filesystem::remove(temp_file);
   }
 }
 #pragma endregion
@@ -719,8 +723,7 @@ TEST_F(ReflectionTableTest, WriteAndReloadProducesSameData) {
   ReflectionTable subset = table.select(selected_rows);
 
   // Temporary write path
-  std::filesystem::path temp_file =
-      std::filesystem::current_path() / "reflection_test_write.h5";
+  std::filesystem::path temp_file = temp_path("reflection_test_write.h5");
   std::string temp_file_str = temp_file.string();
 
   // Write to file
@@ -773,9 +776,6 @@ TEST_F(ReflectionTableTest, WriteAndReloadProducesSameData) {
     std::cerr << "Skipping unsupported type or column not found: " << name
               << "\n";
   }
-
-  // Clean up
-  std::filesystem::remove(temp_file);
 }
 
 TEST_F(ReflectionTableTest, ExperimentMetadataRoundTrip) {
@@ -805,8 +805,7 @@ TEST_F(ReflectionTableTest, ExperimentMetadataRoundTrip) {
   ReflectionTable subset = table.select(selected_rows);
 
   // Write to temp file
-  std::filesystem::path temp_file =
-      std::filesystem::current_path() / "reflection_test_metadata.h5";
+  std::filesystem::path temp_file = temp_path("reflection_test_metadata.h5");
   std::string temp_file_str = temp_file.string();
 
   std::cout << "Writing subset to: " << temp_file_str << "\n";
@@ -836,9 +835,6 @@ TEST_F(ReflectionTableTest, ExperimentMetadataRoundTrip) {
   std::cout << "\n✅ Metadata round-trip test passed.\n";
   std::cout << "Inspect manually in HDFView if needed: " << temp_file_str
             << "\n";
-
-  // Clean up
-  std::filesystem::remove(temp_file);
 }
 
 TEST_F(ReflectionTableTest, EmptyTableWriteSucceeds) {
@@ -846,14 +842,11 @@ TEST_F(ReflectionTableTest, EmptyTableWriteSucceeds) {
   table.set_experiment_ids({1, 2, 3});
   table.set_identifiers({"a", "b", "c"});
 
-  std::filesystem::path temp_file =
-      std::filesystem::current_path() / "empty_table.h5";
+  std::filesystem::path temp_file = temp_path("empty_table.h5");
   EXPECT_NO_THROW(table.write(temp_file.string()));
 
   ReflectionTable loaded(temp_file.string());
   EXPECT_TRUE(loaded.get_column_names().empty());
-
-  std::filesystem::remove(temp_file);
 }
 
 TEST_F(ReflectionTableTest, WriteAndReloadBoolColumn) {
@@ -863,8 +856,7 @@ TEST_F(ReflectionTableTest, WriteAndReloadBoolColumn) {
   std::vector<bool> bool_data = {true, false, false, true};
   table.add_column("bool_flags", bool_data);
 
-  std::filesystem::path temp_file =
-      std::filesystem::current_path() / "reflection_test_write_bool.h5";
+  std::filesystem::path temp_file = temp_path("reflection_test_write_bool.h5");
   table.write(temp_file.string());
 
   ReflectionTable loaded(temp_file.string());
@@ -878,7 +870,5 @@ TEST_F(ReflectionTableTest, WriteAndReloadBoolColumn) {
     EXPECT_EQ(span(i, 0), (bool_data[i] ? ReflectionTable::BoolEnum::TRUE
                                         : ReflectionTable::BoolEnum::FALSE));
   }
-
-  std::filesystem::remove(temp_file);
 }
 #pragma endregion
