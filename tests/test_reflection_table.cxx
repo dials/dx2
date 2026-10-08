@@ -537,20 +537,6 @@ TEST_F(ReflectionTableTest, AddBooleanColumnFromVectorBool) {
   }
 }
 
-TEST_F(ReflectionTableTest, WriteBooleanColumnLeavesRegistryTypeOpen) {
-  std::filesystem::path temp_file =
-      temp_path("reflection_test_bool_registry.h5");
-
-  ReflectionTable table;
-  table.add_column("bools", std::vector<bool>{true, false, true});
-  table.write(temp_file.string());
-
-  // The registry owns the enum type; a write must only borrow it.
-  hid_t bool_type = h5dispatch::get_h5_native_type<ReflectionTable::BoolEnum>();
-  EXPECT_GT(H5Iis_valid(bool_type), 0)
-      << "Registry bool enum type was closed by a column write";
-}
-
 TEST_F(ReflectionTableTest, WriteBooleanColumnTwiceInOneProcess) {
   const std::vector<bool> bool_data = {true, false, true, true, false};
   const std::vector<std::filesystem::path> paths = {

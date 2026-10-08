@@ -33,68 +33,121 @@ template <typename T> struct type_tag_t {
 };
 template <typename T> constexpr type_tag_t<T> type_tag{};
 
+enum class BoolEnum : uint8_t { FALSE = 0, TRUE = 1 };
+
+/// Compile-time list of types.
+template <typename... Ts> struct type_list {};
+
+/**
+ * @brief Every C++ type a reflection table column can hold.
+ *
+ * The single list of supported types. Adding a type means adding it here
+ * and giving it an H5TypeTraits specialisation.
+ */
+using ColumnTypes = type_list<int, int64_t, uint64_t, double, BoolEnum>;
+
+template <typename T, typename List> struct type_list_contains;
+template <typename T, typename... Ts>
+struct type_list_contains<T, type_list<Ts...>>
+    : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
+
+/// True if T is one of ColumnTypes.
+template <typename T>
+inline constexpr bool is_column_type_v =
+    type_list_contains<T, ColumnTypes>::value;
+
+/**
+ * @brief HDF5 description of a column type.
+ *
+ * Each specialisation gives the HDF5 class and sign used to recognise a
+ * dataset of this type on read, and make(), which creates a new datatype
+ * owned by the caller. Predefined H5T_NATIVE_* types cannot be closed, so
+ * make() returns a copy that can. A type without a specialisation fails
+ * to compile.
+ */
+template <typename T> struct H5TypeTraits; // Primary template, never defined
+
+#pragma region H5TypeTraits specialisations
+template <> struct H5TypeTraits<int> {
+  static constexpr H5T_class_t h5_class = H5T_INTEGER;
+  static constexpr H5T_sign_t h5_sign = H5T_SGN_2;
+  static H5Type make() { return H5Type(H5Tcopy(H5T_NATIVE_INT)); }
+};
+
+template <> struct H5TypeTraits<int64_t> {
+  static constexpr H5T_class_t h5_class = H5T_INTEGER;
+  static constexpr H5T_sign_t h5_sign = H5T_SGN_2;
+  static H5Type make() { return H5Type(H5Tcopy(H5T_NATIVE_LLONG)); }
+};
+
+template <> struct H5TypeTraits<uint64_t> {
+  static constexpr H5T_class_t h5_class = H5T_INTEGER;
+  static constexpr H5T_sign_t h5_sign = H5T_SGN_NONE;
+  static H5Type make() { return H5Type(H5Tcopy(H5T_NATIVE_ULLONG)); }
+};
+
+template <> struct H5TypeTraits<double> {
+  static constexpr H5T_class_t h5_class = H5T_FLOAT;
+  static constexpr H5T_sign_t h5_sign = H5T_SGN_ERROR;
+  static H5Type make() { return H5Type(H5Tcopy(H5T_NATIVE_DOUBLE)); }
+};
+
+/// A uint8 enum rather than H5T_NATIVE_HBOOL, which bit-packs.
+template <> struct H5TypeTraits<BoolEnum> {
+  static constexpr H5T_class_t h5_class = H5T_ENUM;
+  static constexpr H5T_sign_t h5_sign = H5T_SGN_NONE;
+  static H5Type make() {
+    H5Type enum_type(H5Tenum_create(H5T_NATIVE_UINT8));
+    uint8_t false_val = 0;
+    uint8_t true_val = 1;
+    H5Tenum_insert(enum_type, "FALSE", &false_val);
+    H5Tenum_insert(enum_type, "TRUE", &true_val);
+    return enum_type;
+  }
+};
+#pragma endregion
+
+/**
+ * @brief Creates the HDF5 datatype for a column type.
+ *
+ * @tparam T A type in ColumnTypes.
+ * @return A new datatype owned by the caller.
+ * @throws std::runtime_error if HDF5 fails to create the type.
+ */
+template <typename T> H5Type make_h5_type() {
+  static_assert(is_column_type_v<T>, "T is not in h5dispatch::ColumnTypes");
+  H5Type type = H5TypeTraits<T>::make();
+  if (!type) {
+    throw std::runtime_error("Failed to create HDF5 datatype.");
+  }
+  return type;
+}
+
 /**
  * @brief Metadata describing a single registered type mapping.
  */
 struct H5TypeInfo {
   std::type_index cpp_type; ///< The C++ type_index of the registered type
-  H5TypeRef h5_native_type; ///< The native HDF5 type (e.g. H5T_NATIVE_INT)
   H5T_class_t h5_class;     ///< HDF5 class (integer, float, etc.)
   size_t h5_size;           ///< Size in bytes
   H5T_sign_t h5_sign;       ///< Sign info for integers (signed/unsigned)
 };
 
-inline h5utils::H5Type create_hdf5_bool_enum_type() {
-  hid_t enum_type = H5Tenum_create(H5T_NATIVE_UINT8);
-  uint8_t false_val = 0;
-  uint8_t true_val = 1;
-  H5Tenum_insert(enum_type, "FALSE", &false_val);
-  H5Tenum_insert(enum_type, "TRUE", &true_val);
-  return h5utils::H5Type(enum_type);
+template <typename... Ts>
+std::vector<H5TypeInfo> make_type_registry(type_list<Ts...>) {
+  return {H5TypeInfo{typeid(Ts), H5TypeTraits<Ts>::h5_class, sizeof(Ts),
+                     H5TypeTraits<Ts>::h5_sign}...};
 }
 
-enum class BoolEnum : uint8_t { FALSE = 0, TRUE = 1 };
-
 /**
- * @brief Central registry for all supported type mappings.
+ * @brief Runtime registry of the supported type mappings.
  *
- * This is the single source of truth for what C++ types are supported,
- * and how they map to HDF5 native types.
+ * Generated from ColumnTypes and H5TypeTraits, and holds no HDF5 handles.
  */
 inline const std::vector<H5TypeInfo> &get_supported_types() {
-  static const H5Type bool_enum_type = create_hdf5_bool_enum_type();
-  static const std::vector<H5TypeInfo> registry = {
-      {typeid(int), H5TypeRef{H5T_NATIVE_INT}, H5T_INTEGER, sizeof(int),
-       H5T_SGN_2},
-      {typeid(int64_t), H5TypeRef{H5T_NATIVE_LLONG}, H5T_INTEGER,
-       sizeof(int64_t), H5T_SGN_2},
-      {typeid(uint64_t), H5TypeRef{H5T_NATIVE_ULLONG}, H5T_INTEGER,
-       sizeof(uint64_t), H5T_SGN_NONE},
-      {typeid(double), H5TypeRef{H5T_NATIVE_DOUBLE}, H5T_FLOAT, sizeof(double),
-       H5T_SGN_ERROR},
-      {typeid(BoolEnum), H5TypeRef{bool_enum_type}, H5T_ENUM, sizeof(uint8_t),
-       H5T_SGN_NONE}};
+  static const std::vector<H5TypeInfo> registry =
+      make_type_registry(ColumnTypes{});
   return registry;
-}
-
-/**
- * @brief Returns the native HDF5 type corresponding to a given C++ type.
- *
- * The registry owns every returned id for the lifetime of the process.
- * Callers borrow it and must not close it; wrapping it in an owning
- * H5Type does not compile.
- *
- * @tparam T The C++ type.
- * @return The HDF5 native type, borrowed from the registry.
- * @throws std::runtime_error if the type is not in the registry.
- */
-template <typename T> H5TypeRef get_h5_native_type() {
-  for (const auto &entry : get_supported_types()) {
-    if (entry.cpp_type == typeid(T)) {
-      return entry.h5_native_type;
-    }
-  }
-  throw std::runtime_error("Unsupported type in get_h5_native_type().");
 }
 
 /**
