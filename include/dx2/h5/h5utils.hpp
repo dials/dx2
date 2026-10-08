@@ -7,6 +7,8 @@
  *
  * - `H5Cleanup<D>`: A generic RAII wrapper for HDF5 identifiers,
  *   ensuring automatic resource cleanup via the correct close function.
+ * - `H5TypeRef`: A borrowed HDF5 type identifier that `H5Cleanup`
+ *   refuses to take ownership of.
  * - Type aliases for commonly used HDF5 object types (e.g., files,
  *   groups, datasets).
  * - `H5ErrorSilencer`: A RAII guard that temporarily disables HDF5
@@ -24,10 +26,24 @@
 
 namespace h5utils {
 
+/**
+ * @brief Non-owning handle to an HDF5 datatype owned elsewhere.
+ *
+ * Converts implicitly to hid_t so it passes straight into HDF5 calls.
+ * Constructing an owning H5Cleanup from it is a compile error, which
+ * prevents a second owner closing the type behind the real owner's back.
+ * A direct H5Tclose on the converted id is not prevented.
+ */
+struct H5TypeRef {
+  hid_t id;
+  operator hid_t() const { return id; }
+};
+
 /// RAII wrapper for HDF5 resources to ensure proper cleanup
 template <herr_t(D)(hid_t)> struct H5Cleanup {
   H5Cleanup() : id(-1) {}
   explicit H5Cleanup(hid_t id) : id(id) {}
+  explicit H5Cleanup(H5TypeRef) = delete;
   H5Cleanup(const H5Cleanup &) = delete;
   H5Cleanup(H5Cleanup &&other) noexcept : id(other.id) { other.id = -1; }
   H5Cleanup &operator=(H5Cleanup &&other) noexcept {

@@ -94,7 +94,7 @@ void write_raw_data_to_h5_file(std::string_view filename,
   // Create dataspace and determine type
   h5utils::H5Space dataspace(
       H5Screate_simple(shape.size(), shape.data(), nullptr));
-  h5utils::H5Type h5_type(h5dispatch::get_h5_native_type<T>());
+  hid_t h5_type = h5dispatch::get_h5_native_type<T>();
 
   // Create or open dataset
   h5utils::H5Dataset dset(H5Dcreate2(group, dataset_name.c_str(), h5_type,
@@ -139,7 +139,7 @@ void write_raw_data_to_h5_group(h5utils::H5Group &group,
   // Create dataspace and determine type
   h5utils::H5Space dataspace(
       H5Screate_simple(shape.size(), shape.data(), nullptr));
-  h5utils::H5Type h5_type(h5dispatch::get_h5_native_type<T>());
+  hid_t h5_type = h5dispatch::get_h5_native_type<T>();
 
   // Create or open dataset
   h5utils::H5Dataset dset(H5Dcreate2(group, dataset_name.c_str(), h5_type,
