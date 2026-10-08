@@ -39,6 +39,19 @@ set(DX2_TESTS
     test_reflection_table
 )
 
+# Tests that open the same HDF5 files on disk. HDF5 locks a file opened for
+# writing and fails rather than waits on contention, so these must not run
+# concurrently under ctest -j.
+set(DX2_HDF5_FILE_TESTS
+    test_write_h5_array
+    test_read_h5_array
+    test_reflection_table
+)
+
 foreach(t ${DX2_TESTS})
-    gtest_discover_tests(${t} PROPERTIES LABELS dx2tests)
+    set(props LABELS dx2tests)
+    if(t IN_LIST DX2_HDF5_FILE_TESTS)
+        list(APPEND props RESOURCE_LOCK dx2_hdf5_files)
+    endif()
+    gtest_discover_tests(${t} PROPERTIES ${props})
 endforeach()
