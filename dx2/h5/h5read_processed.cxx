@@ -83,7 +83,7 @@ void traverse_hdf5(hid_t loc_id, const std::string &path,
   // std::cout << "Traversing: " << (path.empty() ? "/" : path) << std::endl;
 
   TraverseData traverse_data = {&datasets, path, &visited_groups};
-  H5Literate2(loc_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, group_iterator,
+  H5Literate2(loc_id, H5_INDEX_NAME, H5_ITER_INC, NULL, group_iterator,
               &traverse_data);
 }
 
@@ -111,7 +111,7 @@ std::vector<std::string> get_datasets_in_group(std::string_view filename,
   h5read_processed_utils::GroupScanContext context{gpath, {}};
 
   // Iterate over immediate children
-  H5Literate2(group, H5_INDEX_NAME, H5_ITER_NATIVE, nullptr,
+  H5Literate2(group, H5_INDEX_NAME, H5_ITER_INC, nullptr,
               h5read_processed_utils::scan_group_callback, &context);
 
   return context.datasets;

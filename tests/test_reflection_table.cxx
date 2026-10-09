@@ -1,5 +1,6 @@
 #include <dx2/reflection.hpp>
 #include <filesystem>
+#include <fmt/core.h>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <optional>
@@ -448,6 +449,35 @@ TEST_F(ReflectionTableTest, WriteTableFromScratchAndReload) {
     EXPECT_EQ(reloaded_ids[i], experiment_ids[i]);
     EXPECT_EQ(reloaded_identifiers[i], identifiers[i]);
   }
+}
+
+TEST_F(ReflectionTableTest, WritesExperimentMetadataLargerThan64KiB) {
+  // 25600 experiments pushes both metadata attributes past 64 KiB
+  constexpr size_t n_experiments = 25600;
+
+  ReflectionTable table;
+  table.add_column<int>("id", std::vector<int>{0, 1, 2});
+
+  std::vector<uint64_t> experiment_ids(n_experiments);
+  std::vector<std::string> identifiers(n_experiments);
+  for (size_t i = 0; i < n_experiments; ++i) {
+    experiment_ids[i] = i;
+    identifiers[i] = fmt::format("{:08x}-0000-4000-8000-000000000000", i);
+  }
+  table.set_experiment_ids(experiment_ids);
+  table.set_identifiers(identifiers);
+
+  std::filesystem::path temp_file =
+      temp_path("reflection_test_large_metadata.h5");
+  table.write(temp_file.string());
+
+  ReflectionTable loaded(temp_file.string());
+  EXPECT_EQ(loaded.get_experiment_ids(), experiment_ids)
+      << "experiment_ids did not round-trip for " << n_experiments
+      << " experiments";
+  EXPECT_EQ(loaded.get_identifiers(), identifiers)
+      << "identifiers did not round-trip for " << n_experiments
+      << " experiments";
 }
 
 TEST_F(ReflectionTableTest, WriteOverwritesExistingFile) {

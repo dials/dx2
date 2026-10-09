@@ -11,6 +11,8 @@
  *   refuses to take ownership of.
  * - Type aliases for commonly used HDF5 object types (e.g., files,
  *   groups, datasets).
+ * - `make_v18_file_access_plist`: A file access property list that
+ *   allows attributes larger than 64 KiB.
  * - `H5ErrorSilencer`: A RAII guard that temporarily disables HDF5
  *   error output and restores the original handler on scope exit.
  *
@@ -68,6 +70,26 @@ using H5Dataset = H5Cleanup<H5Dclose>;
 using H5Attr = H5Cleanup<H5Aclose>;
 using H5Space = H5Cleanup<H5Sclose>;
 using H5Type = H5Cleanup<H5Tclose>;
+using H5Plist = H5Cleanup<H5Pclose>;
+
+/**
+ * @brief Create a file access property list that writes the HDF5 1.8
+ * file format or newer.
+ *
+ * Attributes larger than 64 KiB need this format. Files written with it
+ * need HDF5 >= 1.8 to read.
+ *
+ * @return An owning handle to the property list, or an invalid handle if
+ * HDF5 could not create or configure it.
+ */
+inline H5Plist make_v18_file_access_plist() {
+  H5Plist fapl(H5Pcreate(H5P_FILE_ACCESS));
+  if (fapl &&
+      H5Pset_libver_bounds(fapl, H5F_LIBVER_V18, H5F_LIBVER_LATEST) < 0) {
+    return H5Plist();
+  }
+  return fapl;
+}
 
 /**
  * @brief RAII guard that temporarily suppresses HDF5 error output.
