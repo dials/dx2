@@ -5,6 +5,8 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 /*
@@ -385,25 +387,55 @@ TEST_F(ReflectionTableTest, UpdateColumnPreservesOrder) {
   EXPECT_EQ(names[2], "c");
 }
 
-TEST_F(ReflectionTableTest, AddUnsupportedColumnTypeThrows) {
+// A column type outside h5dispatch::ColumnTypes is a compile error in
+// add_column, update_column and column<T>, so it can only be checked here.
+namespace {
+struct UnsupportedColumnType {
+  int x;
+};
+} // namespace
+static_assert(!h5dispatch::is_column_type_v<UnsupportedColumnType>,
+              "An arbitrary struct must not be a column type");
+static_assert(!h5dispatch::is_column_type_v<bool>,
+              "bool must be stored as BoolEnum, not as a column type");
+static_assert(std::is_same_v<size_t, uint64_t>,
+              "column<size_t> relies on size_t being the uint64_t column type");
+static_assert(std::is_same_v<decltype(std::declval<ReflectionTable &>()
+                                          .column<double>("")),
+                             std::optional<mdspan_type<double>>>,
+              "A mutable table must give a writable column view");
+static_assert(std::is_same_v<decltype(std::declval<const ReflectionTable &>()
+                                          .column<double>("")),
+                             std::optional<mdspan_type<const double>>>,
+              "A const table must give a read-only column view");
+
+TEST_F(ReflectionTableTest, CopiedTableOwnsItsColumnData) {
+  ReflectionTable original;
+  original.add_column("x", std::vector<double>{1.0, 2.0, 3.0});
+
+  ReflectionTable copy = original;
+  copy.column<double>("x").value()(0, 0) = 42.0;
+
+  EXPECT_EQ(original.column<double>("x").value()(0, 0), 1.0)
+      << "Writing through the copy changed the original";
+  EXPECT_EQ(copy.column<double>("x").value()(0, 0), 42.0)
+      << "Write through the copy's view was lost";
+}
+
+TEST_F(ReflectionTableTest, ColumnViewStaysValidAfterMoreColumnsAreAdded) {
   ReflectionTable table;
+  table.add_column("first", std::vector<int>{1, 2, 3});
+  auto view = table.column<int>("first").value();
 
-  // Define a dummy type that is not supported
-  struct DummyType {
-    int x;
-  };
-
-  // Attempt to add a column with the unsupported type
-  std::vector<DummyType> data(3, DummyType{42});
-  try {
-    table.add_column("dummy", std::vector<size_t>{3}, data);
-  } catch (const std::exception &e) {
-    std::cout << "[AddUnsupportedColumnTypeThrows] Error (expected): "
-              << e.what() << "\n";
-    SUCCEED();
-    return;
+  // Enough columns to force the column vector to reallocate.
+  for (int i = 0; i < 64; ++i) {
+    table.add_column("extra_" + std::to_string(i), std::vector<int>{i, i, i});
   }
-  FAIL() << "Expected std::runtime_error: unsupported column type";
+
+  for (size_t i = 0; i < 3; ++i) {
+    EXPECT_EQ(view(i, 0), static_cast<int>(i) + 1)
+        << "View taken before reallocation reads wrong data at row " << i;
+  }
 }
 
 TEST_F(ReflectionTableTest, WriteTableFromScratchAndReload) {

@@ -64,8 +64,8 @@ ReflectionTable::ReflectionTable(const std::string &h5_filepath)
         auto result =
             read_array_with_shape_from_h5_file<T>(h5_filepath, dataset);
 
-        data.push_back(std::make_unique<TypedColumn<T>>(
-            dataset_name, result.shape, result.data));
+        data.emplace_back(TypedColumn<T>(dataset_name, std::move(result.shape),
+                                         std::move(result.data)));
 
         dx2_log::debug("Loaded column: {} with type {}", dataset_name,
                        typeid(T).name());
@@ -125,7 +125,7 @@ std::pair<uint64_t, std::string> ReflectionTable::generate_new_attributes() {
 std::vector<std::string> ReflectionTable::get_column_names() const {
   std::vector<std::string> names;
   for (const auto &col : data) {
-    names.push_back(col->get_name());
+    names.push_back(column_name(col));
   }
   return names;
 }
@@ -138,7 +138,7 @@ size_t ReflectionTable::size() const { return get_row_count(); }
 size_t ReflectionTable::get_row_count() const {
   if (data.empty())
     return 0;
-  return data.front()->get_shape()[0];
+  return column_rows(data.front());
 }
 
 void ReflectionTable::merge_into_set(std::unordered_set<size_t> &set,
@@ -155,7 +155,9 @@ ReflectionTable::select(const std::vector<size_t> &selected_rows) const {
   filtered.h5_filepath = this->h5_filepath;
 
   for (const auto &col : data) {
-    filtered.data.push_back(col->clone_filtered(selected_rows));
+    filtered.data.push_back(std::visit(
+        [&](const auto &c) -> Column { return c.filtered(selected_rows); },
+        col));
   }
 
   // Copy experiment_ids and identifiers
@@ -217,45 +219,29 @@ void ReflectionTable::write(std::string_view filename,
   // Write metadata
   write_experiment_metadata(group_id, experiment_ids, identifiers);
 
-  // 🔁 Write all columns
+  // Write all columns
   for (const auto &col : data) {
-    // 🏗️ Construct full dataset path: group + column name
-    const std::string &name = col->get_name();
+    std::visit(
+        [&](const auto &typed) {
+          using T = typename std::decay_t<decltype(typed)>::value_type;
 
-    // Define a lambda that writes a column of a specific type T
-    auto write_col = [&](auto tag) {
-      using T = typename decltype(tag)::type;
+          // Write N x 1 columns to disk as shape=(N,) rather than (N,1)
+          std::vector<hsize_t> write_shape;
+          if (typed.cols() == 1) {
+            write_shape = {typed.rows()};
+          } else {
+            write_shape = {typed.rows(), typed.cols()};
+          }
 
-      // 🧪 Try to cast the typeless base pointer to TypedColumn<T>
-      const auto *typed = col->as<T>();
-      if (!typed) {
-        // This should not happen unless type registry is inconsistent
-        dx2_log::error(
-            fmt::format("Internal type mismatch for column '{}'", name));
-        return;
-      }
-
-      // 💾 Call the HDF5 writer to write raw data to file
-      // Handle the case of N x 1 shaped data, want it written to disk as
-      // shape=(N,) rather than shape=(N,1)
-      std::vector<hsize_t> write_shape;
-      if ((typed->shape.size() == 2) && (typed->shape[1] == 1)) {
-        write_shape = std::vector<hsize_t>({typed->shape[0]});
-      } else {
-        write_shape =
-            std::vector<hsize_t>(typed->shape.begin(), typed->shape.end());
-      }
-      write_raw_data_to_h5_group<T>(group_id, name, typed->data.data(),
-                                    write_shape);
-    };
-
-    // 🌀 Dispatch the column type and invoke the write_col lambda
-    try {
-      h5dispatch::dispatch_column_type(col->get_type(), write_col);
-    } catch (const std::exception &e) {
-      // ⚠️ If the type is unsupported or an error occurs, print warning
-      dx2_log::warning(fmt::format("Skipping column {}: {}", name, e.what()));
-    }
+          try {
+            write_raw_data_to_h5_group<T>(group_id, typed.name,
+                                          typed.data.data(), write_shape);
+          } catch (const std::exception &e) {
+            dx2_log::warning(
+                fmt::format("Skipping column {}: {}", typed.name, e.what()));
+          }
+        },
+        col);
   }
 }
 #pragma endregion

@@ -4,13 +4,15 @@
  *
  * This header defines a flexible structure for interacting with HDF5
  * datasets as typed reflection tables. It allows datasets to be loaded
- * into typed polymorphic containers, filtered by row selection, queried
- * by column, and written back to disk.
+ * into typed columns, filtered by row selection, queried by column, and
+ * written back to disk.
  *
  * - `ReflectionTable` manages a collection of columns loaded from an
  *   HDF5 group.
- * - Each column is stored as a type-erased `ColumnBase`, which can be
- *   downcast to a specific `TypedColumn<T>` when needed.
+ * - Each column is a `TypedColumn<T>` held in a `std::variant` with one
+ *   alternative per type in `h5dispatch::ColumnTypes`, the same model as
+ *   the DIALS reflection_table (a dxtbx flex_table over a boost::variant).
+ *   A column type outside that list is a compile error.
  * - Support for adding, querying, selecting, and writing columns.
  */
 #pragma once
@@ -25,13 +27,13 @@
 #include <experimental/mdspan>
 #include <functional>
 #include <iomanip>
-#include <memory>
 #include <optional>
 #include <random>
 #include <sstream>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 
 #pragma region Type Helpers
@@ -48,159 +50,65 @@ using mdspan_type =
 #pragma endregion
 
 #pragma region Column Definition
-// Forward declaration of TypedColumn
-template <typename T> struct TypedColumn;
-
 /**
- * @brief Typeless container for HDF5 data.
+ * @brief A named column of values of one type, stored row-major.
  *
- * This is a base class for HDF5 data types. It provides a common interface
- * for different data types, allowing them to be handled polymorphically.
- * Derived classes should implement the virtual methods to provide
- * specific functionality for each data type.
+ * A plain value type: copying a column copies its data. The mdspan view is
+ * built on demand rather than stored, since a stored view would keep
+ * pointing at the source's buffer after a copy.
+ *
+ * @tparam T A type in h5dispatch::ColumnTypes.
  */
-struct ColumnBase {
-  virtual ~ColumnBase() = default;
-  virtual std::string get_name() const = 0;
-  virtual std::vector<size_t> get_shape() const = 0;
-  virtual std::type_index get_type() const = 0;
-  virtual std::unique_ptr<ColumnBase>
-  clone_filtered(const std::vector<size_t> &selected_rows) const = 0;
+template <typename T> struct TypedColumn {
+  using value_type = T;
 
   /**
-   * @brief Attempts to cast this column to a TypedColumn<T>.
-   *
-   * @tparam T The target type to cast to.
-   * @return A pointer to the TypedColumn<T>, or nullptr if types don't match.
-   */
-  template <typename T> const TypedColumn<T> *as() const {
-    if (get_type() != std::type_index(typeid(T)))
-      return nullptr;
-    return dynamic_cast<const TypedColumn<T> *>(this);
-  }
-};
-
-/**
- * @brief Specialized container for HDF5 data of a specific type.
- */
-template <typename T> struct TypedColumn : public ColumnBase {
-  /**
-   * @brief Constructs a column with a given name and shape, allocating storage.
+   * @brief Constructs a column from a shape and matching flat data.
    *
    * @param name The name of the column.
-   * @param shape A vector specifying the shape (e.g. [rows, cols]).
+   * @param shape {rows} or {rows, cols}.
+   * @param data Flat vector of values in row-major order.
+   * @throws std::runtime_error if the shape is not rank 1 or 2.
    */
-  TypedColumn(const std::string &name, const std::vector<size_t> &shape)
-      : name(name), shape(shape), data(compute_size(shape)) {
-    setup_mdspan();
-  }
-
-  /**
-   * @brief Constructs a column with a given name, shape, and preloaded data.
-   *
-   * @param name The name of the column.
-   * @param shape Shape of the column.
-   * @param data Flat vector of values, matching the given shape.
-   */
-  TypedColumn(const std::string &name, const std::vector<size_t> &shape,
-              const std::vector<T> &data)
-      : name(name), shape(shape), data(data) {
-    setup_mdspan();
-  }
-
-  /**
-   * @brief Constructs a column from row/col dimensions.
-   *
-   * @param name The column name.
-   * @param rows Number of rows.
-   * @param cols Number of columns.
-   */
-  TypedColumn(const std::string &name, size_t rows, size_t cols)
-      : name(name), shape{rows, cols}, data(rows * cols) {
-    setup_mdspan();
-  }
-
-  std::vector<size_t> get_shape() const override { return shape; }
-  std::string get_name() const override { return name; }
-  std::type_index get_type() const override {
-    return std::type_index(typeid(T));
-  }
-
-  /**
-   * @brief Returns an mdspan view over the internal data.
-   *
-   * @return A constant reference to the mdspan view of the data.
-   */
-  const mdspan_type<T> &span() const { return mdspan_data; }
-
-  /**
-   * @brief Creates a filtered copy of the column, keeping only selected rows.
-   *
-   * This method returns a new TypedColumn containing only the rows specified
-   * by the input indices. Column structure and type are preserved.
-   *
-   * @param selected_rows Indices of rows to keep.
-   * @return A new column with only the specified rows.
-   */
-  std::unique_ptr<ColumnBase>
-  clone_filtered(const std::vector<size_t> &selected_rows) const override {
-    size_t new_rows = selected_rows.size();
-    size_t cols = shape.size() > 1 ? shape[1] : 1;
-
-    std::vector<T> new_data;
-    new_data.reserve(new_rows * cols);
-
-    for (size_t row : selected_rows) {
-      for (size_t col = 0; col < cols; ++col) {
-        // 🧵 Extract value row-wise
-        new_data.push_back(mdspan_data(row, col));
-      }
-    }
-
-    return std::make_unique<TypedColumn<T>>(
-        name, std::vector<size_t>{new_rows, cols}, new_data);
-  }
-
-  std::string name;           // Name of the dataset
-  std::vector<size_t> shape;  // Shape of the dataset
-  storage_type<T> data;       // Storage for the dataset
-  mdspan_type<T> mdspan_data; // mdspan view of the data
-
-private:
-  /**
-   * @brief Initializes the mdspan view based on the current shape.
-   */
-  void setup_mdspan() {
-    if (shape.size() == 1) {
-      mdspan_data = mdspan_type<T>(data.data(), shape[0], 1);
-    } else if (shape.size() == 2) {
-      mdspan_data = mdspan_type<T>(data.data(), shape[0], shape[1]);
-    } else {
+  TypedColumn(std::string name, std::vector<size_t> shape, storage_type<T> data)
+      : name(std::move(name)), shape(std::move(shape)), data(std::move(data)) {
+    if (this->shape.size() != 1 && this->shape.size() != 2) {
       throw std::runtime_error("TypedColumn: unsupported rank " +
-                               std::to_string(shape.size()));
+                               std::to_string(this->shape.size()));
     }
   }
 
-  /**
-   * @brief Computes the total number of elements for a given shape.
-   *
-   * @param shape A vector of dimensions.
-   * @return The product of all shape dimensions.
-   */
-  static size_t compute_size(const std::vector<size_t> &shape) {
-    if (shape.empty())
-      return 0;
-    size_t s = 1;
-    for (auto dim : shape)
-      s *= dim;
-    return s;
-  }
-};
+  size_t rows() const { return shape[0]; }
+  size_t cols() const { return shape.size() > 1 ? shape[1] : 1; }
 
-template <typename Callback>
-void dispatch_column_type(const ColumnBase &col, Callback &&cb) {
-  h5dispatch::dispatch_column_type(col.get_type(), std::forward<Callback>(cb));
-}
+  /// Returns a rows x cols view over the column data.
+  mdspan_type<T> span() { return mdspan_type<T>(data.data(), rows(), cols()); }
+
+  /// Returns a read-only rows x cols view over the column data.
+  mdspan_type<const T> span() const {
+    return mdspan_type<const T>(data.data(), rows(), cols());
+  }
+
+  /**
+   * @brief Returns a copy of the column keeping only the given rows.
+   *
+   * @param selected_rows Indices of rows to keep, in output order.
+   */
+  TypedColumn<T> filtered(const std::vector<size_t> &selected_rows) const {
+    storage_type<T> new_data;
+    new_data.reserve(selected_rows.size() * cols());
+    for (size_t row : selected_rows) {
+      auto first = data.begin() + row * cols();
+      new_data.insert(new_data.end(), first, first + cols());
+    }
+    return TypedColumn<T>(name, {selected_rows.size(), cols()},
+                          std::move(new_data));
+  }
+
+  std::string name;          ///< Name of the dataset
+  std::vector<size_t> shape; ///< {rows} or {rows, cols}
+  storage_type<T> data;      ///< Row-major values
+};
 #pragma endregion
 
 #pragma region Predicate Helpers
@@ -218,7 +126,7 @@ template <typename T> struct ColumnPredicate {
   ///< The name of the column to apply the predicate on.
   std::string column_name;
   ///< A predicate function over the column mdspan and row index.
-  std::function<bool(const mdspan_type<T> &, size_t)> predicate;
+  std::function<bool(const mdspan_type<const T> &, size_t)> predicate;
 };
 
 namespace logic {
@@ -237,10 +145,15 @@ enum class LogicalOp {
 #pragma region ReflectionTable
 class ReflectionTable {
 private:
-  /*
-   * Stores data in a typeless, polymorphic container
-   */
-  std::vector<std::unique_ptr<ColumnBase>> data;
+  /// One alternative per entry in h5dispatch::ColumnTypes.
+  using Column = h5dispatch::variant_of_t<TypedColumn, h5dispatch::ColumnTypes>;
+
+  // Views returned by column<T>() point into each column's buffer, which
+  // survives the column vector reallocating only if columns are moved
+  // rather than copied.
+  static_assert(std::is_nothrow_move_constructible_v<Column>);
+
+  std::vector<Column> data;
   std::string h5_filepath;
   const std::string DEFAULT_REFL_GROUP = "/dials/processing/group_0";
   std::vector<uint64_t> experiment_ids;
@@ -251,24 +164,35 @@ private:
   /// have the same number of rows
   size_t get_row_count() const;
 
-  /// Check if a column with the given name and type exists
-  template <typename T>
-  bool matches_column(const ColumnBase &col, const std::string &name) const {
-    return col.get_name() == name && col.get_type() == typeid(T);
+  static const std::string &column_name(const Column &col) {
+    return std::visit(
+        [](const auto &c) -> const std::string & { return c.name; }, col);
   }
 
-  /// Throw if type T is not supported by the HDF5 backend.
-  template <typename T> void ensure_supported_type() const {
-    const auto &registry = h5dispatch::get_supported_types();
-    bool supported = std::any_of(registry.begin(), registry.end(),
-                                 [](const h5dispatch::H5TypeInfo &info) {
-                                   return info.cpp_type == typeid(T);
-                                 });
-    if (!supported) {
-      throw std::runtime_error(
-          "Attempted to add column with unsupported type: " +
-          std::string(typeid(T).name()));
+  static size_t column_rows(const Column &col) {
+    return std::visit([](const auto &c) { return c.rows(); }, col);
+  }
+
+  /**
+   * @brief Finds the column named `name` holding T.
+   *
+   * @tparam Self ReflectionTable or const ReflectionTable; the returned
+   * pointer carries the same constness.
+   * @return The column, or nullptr if no column with this name holds T.
+   */
+  template <typename T, typename Self>
+  static auto find_column(Self &self, const std::string &name)
+      -> std::conditional_t<std::is_const_v<Self>, const TypedColumn<T>,
+                            TypedColumn<T>> * {
+    static_assert(h5dispatch::is_column_type_v<T>,
+                  "Unsupported column type; see h5dispatch::ColumnTypes");
+    for (auto &col : self.data) {
+      auto *typed = std::get_if<TypedColumn<T>>(&col);
+      if (typed && typed->name == name) {
+        return typed;
+      }
     }
+    return nullptr;
   }
 
   /**
@@ -311,7 +235,7 @@ private:
       throw std::runtime_error("Column not found or wrong type: " +
                                condition.column_name);
 
-    const mdspan_type<T> &span = *opt;
+    const mdspan_type<const T> &span = *opt;
     std::vector<size_t> matches;
     for (size_t i = 0; i < span.extent(0); ++i) {
       if (condition.predicate(span, i)) {
@@ -404,37 +328,33 @@ public:
 
 #pragma region Column Access
   /**
-   * @brief Retrieves a read-only view (mdspan) of a typed column by
-   * name.
+   * @brief Retrieves a view (mdspan) of a typed column by name.
    *
-   * This function attempts to locate a column in the table that matches
-   * both the given name and expected type `T`. If a matching column is
-   * found, it returns a non-owning reference wrapper around the
-   * `mdspan` view of that column’s data. If no matching column is
-   * found, it returns std::nullopt.
+   * Looks for a column matching both the given name and type `T`. On a
+   * mutable table the view is writable; on a const table the overload
+   * below returns a read-only view.
    *
    * @tparam T The expected type of the column (e.g., int, double).
    * @param name The name of the column to retrieve.
-   * @return An optional containing a reference to the mdspan view, or
-   * std::nullopt if not found.
+   * @return An optional containing the mdspan view, or std::nullopt if no
+   * column with this name holds `T`.
    *
-   * @note The returned mdspan reference is only valid as long as the
-   * owning ReflectionTable instance and its internal data remain alive.
+   * @note The view is only valid while the column exists in this table.
    */
   template <typename T>
-  std::optional<mdspan_type<T>> column(const std::string &name) const {
-    // Iterate though all columns in the table
-    for (const auto &col : data) {
-      // Check if the column matches the requested type and name
-      if (matches_column<T>(*col, name)) {
-        // Attempt to cast to the specific type
-        auto *typed = dynamic_cast<TypedColumn<T> *>(col.get());
-        if (typed) { // If cast is successful, return the span
-          return typed->span();
-        }
-      }
+  std::optional<mdspan_type<T>> column(const std::string &name) {
+    if (auto *typed = find_column<T>(*this, name)) {
+      return typed->span();
     }
-    // If no matching column is found, return an empty optional
+    return std::nullopt;
+  }
+
+  /// Read-only view of a typed column on a const table.
+  template <typename T>
+  std::optional<mdspan_type<const T>> column(const std::string &name) const {
+    if (const auto *typed = find_column<T>(*this, name)) {
+      return typed->span();
+    }
     return std::nullopt;
   }
 
@@ -571,26 +491,25 @@ public:
       }
       add_column<h5dispatch::BoolEnum>(name, shape, converted);
     } else {
-      auto col = std::make_unique<TypedColumn<T>>(name, shape, column_data);
+      static_assert(h5dispatch::is_column_type_v<T>,
+                    "Unsupported column type; see h5dispatch::ColumnTypes");
+      TypedColumn<T> col(name, shape, column_data);
 
       // Check for duplicate column names
       for (const auto &existing_col : data) {
-        if (existing_col->get_name() == name) {
+        if (column_name(existing_col) == name) {
           throw std::runtime_error("Column with name already exists: " + name);
         }
       }
 
-      // Check if type T is supported
-      ensure_supported_type<T>();
-
       // Ensure row count consistency
-      if (!data.empty() && col->get_shape()[0] != get_row_count()) {
+      if (!data.empty() && col.rows() != get_row_count()) {
         throw std::runtime_error("Row count mismatch when adding column: " +
                                  name);
       }
 
       // Add the new column to the table
-      data.push_back(std::move(col));
+      data.emplace_back(std::move(col));
     }
   }
 
@@ -642,8 +561,8 @@ public:
    * @param shape A vector describing the shape of the new column data.
    * @param column_data A flat vector of `T` values for the column.
    *
-   * @throws std::runtime_error if no column with `name` exists, the type
-   * is unsupported, or the row count does not match the other columns.
+   * @throws std::runtime_error if no column with `name` exists or the row
+   * count does not match the other columns.
    */
   template <typename T>
   void update_column(const std::string &name, const std::vector<size_t> &shape,
@@ -657,24 +576,23 @@ public:
       }
       update_column<h5dispatch::BoolEnum>(name, shape, converted);
     } else {
+      static_assert(h5dispatch::is_column_type_v<T>,
+                    "Unsupported column type; see h5dispatch::ColumnTypes");
+
       // Locate the existing column (strict: it must already exist)
-      auto it = std::find_if(data.begin(), data.end(),
-                             [&](const std::unique_ptr<ColumnBase> &c) {
-                               return c->get_name() == name;
-                             });
+      auto it = std::find_if(data.begin(), data.end(), [&](const Column &c) {
+        return column_name(c) == name;
+      });
       if (it == data.end()) {
         throw std::runtime_error("Column not found for update: " + name);
       }
 
-      auto col = std::make_unique<TypedColumn<T>>(name, shape, column_data);
-
-      // Check if type T is supported
-      ensure_supported_type<T>();
+      TypedColumn<T> col(name, shape, column_data);
 
       // Ensure row count consistency with the other columns in the table
       for (const auto &other : data) {
-        if (other->get_name() != name) {
-          if (col->get_shape()[0] != other->get_shape()[0]) {
+        if (column_name(other) != name) {
+          if (col.rows() != column_rows(other)) {
             throw std::runtime_error(
                 "Row count mismatch when updating column: " + name);
           }
@@ -711,16 +629,8 @@ public:
    * @brief Writes all columns to an HDF5 file under the given group.
    *
    * This function iterates through all stored columns and writes each one
-   * to disk, provided its type is supported by the HDF5 backend.
-   *
-   * Supported types include:
-   *   - double
-   *   - int
-   *   - int64_t
-   *   - uint64_t
-   *   - BoolEnum (internal enum for HDF5-stored booleans)
-   *
-   * Columns with unsupported types will be skipped with a warning.
+   * to disk as its h5dispatch::H5TypeTraits datatype. A column that HDF5
+   * fails to write is skipped with a warning.
    *
    * @param filename Output HDF5 file path.
    * @param group Target group inside the HDF5 file (defaults to
