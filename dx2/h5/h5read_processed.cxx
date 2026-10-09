@@ -155,7 +155,12 @@ void read_experiment_metadata(hid_t group_id,
     hssize_t num_elements = H5Sget_simple_extent_npoints(space);
 
     experiment_ids.resize(num_elements);
-    H5Aread(attr, H5T_NATIVE_ULLONG, experiment_ids.data());
+    if (H5Aread(attr, H5T_NATIVE_ULLONG, experiment_ids.data()) < 0) {
+      dx2_log::warning(fmt::format(
+          "Failed to read experiment_ids attribute ({} entries), skipping.",
+          num_elements));
+      experiment_ids.clear();
+    }
   }
 
   if (H5Aexists(group_id, "identifiers") > 0) {
@@ -165,12 +170,22 @@ void read_experiment_metadata(hid_t group_id,
     hssize_t num_elements = H5Sget_simple_extent_npoints(space);
 
     std::vector<char *> raw_strings(num_elements);
-    identifiers.resize(num_elements);
-    H5Aread(attr, type, raw_strings.data());
-
-    for (hssize_t i = 0; i < num_elements; ++i) {
-      identifiers[i] = std::string(raw_strings[i]);
+    if (H5Aread(attr, type, raw_strings.data()) < 0) {
+      dx2_log::warning(fmt::format(
+          "Failed to read identifiers attribute ({} entries), skipping.",
+          num_elements));
+      return;
     }
+
+    // A null entry is a valid HDF5 variable-length string and reads as empty
+    identifiers.clear();
+    identifiers.reserve(num_elements);
+    for (const char *raw : raw_strings) {
+      identifiers.emplace_back(raw ? raw : "");
+    }
+
+    // Variable-length strings are allocated by HDF5 during the read
+    H5Treclaim(type, space, H5P_DEFAULT, raw_strings.data());
   }
 }
 
