@@ -47,6 +47,7 @@ template <typename... Ts> struct type_list {};
  */
 using ColumnTypes = type_list<int, int64_t, uint64_t, double, BoolEnum>;
 
+/// Whether T appears in a type_list; value is true or false.
 template <typename T, typename List> struct type_list_contains;
 template <typename T, typename... Ts>
 struct type_list_contains<T, type_list<Ts...>>
@@ -57,6 +58,7 @@ template <typename T>
 inline constexpr bool is_column_type_v =
     type_list_contains<T, ColumnTypes>::value;
 
+/// Builds std::variant<Wrap<Ts>...> from type_list<Ts...>.
 template <template <typename> class Wrap, typename List> struct variant_of;
 template <template <typename> class Wrap, typename... Ts>
 struct variant_of<Wrap, type_list<Ts...>> {

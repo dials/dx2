@@ -68,17 +68,23 @@ template <typename T> struct TypedColumn {
    * @param name The name of the column.
    * @param shape {rows} or {rows, cols}.
    * @param data Flat vector of values in row-major order.
-   * @throws std::runtime_error if the shape is not rank 1 or 2.
+   * @throws std::runtime_error if the shape is not {N} or {N, M}.
    */
   TypedColumn(std::string name, std::vector<size_t> shape, storage_type<T> data)
       : name(std::move(name)), shape(std::move(shape)), data(std::move(data)) {
     if (this->shape.size() != 1 && this->shape.size() != 2) {
-      throw std::runtime_error("TypedColumn: unsupported rank " +
-                               std::to_string(this->shape.size()));
+      std::string got = "{";
+      for (size_t i = 0; i < this->shape.size(); ++i) {
+        got += (i ? ", " : "") + std::to_string(this->shape[i]);
+      }
+      throw std::runtime_error(
+          "TypedColumn: column shape must be {N} or {N, M}, got " + got + "}");
     }
   }
 
+  /// Number of rows (reflections).
   size_t rows() const { return shape[0]; }
+  /// Values per row; 1 for a column of shape {N}.
   size_t cols() const { return shape.size() > 1 ? shape[1] : 1; }
 
   /// Returns a rows x cols view over the column data.
@@ -164,11 +170,13 @@ private:
   /// have the same number of rows
   size_t get_row_count() const;
 
+  /// Name of a column of any type.
   static const std::string &column_name(const Column &col) {
     return std::visit(
         [](const auto &c) -> const std::string & { return c.name; }, col);
   }
 
+  /// Row count of a column of any type.
   static size_t column_rows(const Column &col) {
     return std::visit([](const auto &c) { return c.rows(); }, col);
   }

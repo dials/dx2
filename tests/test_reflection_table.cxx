@@ -269,22 +269,24 @@ TEST_F(ReflectionTableTest, AddColumnExplicit) {
   EXPECT_DOUBLE_EQ((*col)(2, 2), 9.0);
 }
 
-TEST_F(ReflectionTableTest, AddColumnRejectsRank3) {
+TEST_F(ReflectionTableTest, AddColumnRejectsAShapeWithThreeEntries) {
   ReflectionTable table;
 
-  // Invalid rank-3 shape: {2, 2, 3}
+  // Invalid shape {2, 2, 3}: neither {N} nor {N, M}
   std::vector<double> data(12);
   std::iota(data.begin(), data.end(), 0.0);
 
   try {
-    table.add_column("col_rank3", std::vector<size_t>{2, 2, 3}, data);
+    table.add_column("col_3d", std::vector<size_t>{2, 2, 3}, data);
     FAIL() << "Expected std::runtime_error";
   } catch (const std::runtime_error &e) {
-    std::cout << "[AddColumnRejectsRank3] Caught error: " << e.what() << "\n";
-    EXPECT_TRUE(std::string(e.what()).find("unsupported rank") !=
-                std::string::npos);
+    std::cout << "[AddColumnRejectsAShapeWithThreeEntries] Caught error: "
+              << e.what() << "\n";
+    EXPECT_TRUE(std::string(e.what()).find("must be {N} or {N, M}") !=
+                std::string::npos)
+        << "Error message does not name the supported shapes";
   } catch (...) {
-    FAIL() << "Expected std::runtime_error: unsupported rank";
+    FAIL() << "Expected std::runtime_error: shape must be {N} or {N, M}";
   }
 }
 
