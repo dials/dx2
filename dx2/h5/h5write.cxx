@@ -4,6 +4,8 @@
  */
 
 #include "dx2/h5/h5write.hpp"
+#include <fmt/core.h>
+#include <stdexcept>
 
 #pragma region Raw writer
 h5utils::H5Group traverse_or_create_groups(hid_t parent,
@@ -66,9 +68,6 @@ void write_experiment_metadata(hid_t group_id,
         "Experiment IDs and identifiers must not be empty.");
   }
 
-  // Suppress errors when opening non-existent files, groups, datasets..
-  H5ErrorSilencer silencer;
-
   // Write experiment_ids
   {
     hsize_t dims = experiment_ids.size();
@@ -76,7 +75,12 @@ void write_experiment_metadata(hid_t group_id,
     h5utils::H5Attr attr(H5Acreate2(group_id, "experiment_ids",
                                     H5T_NATIVE_ULLONG, space, H5P_DEFAULT,
                                     H5P_DEFAULT));
-    H5Awrite(attr, H5T_NATIVE_ULLONG, experiment_ids.data());
+    if (!space || !attr ||
+        H5Awrite(attr, H5T_NATIVE_ULLONG, experiment_ids.data()) < 0) {
+      throw std::runtime_error(
+          fmt::format("Failed to write experiment_ids attribute ({} entries)",
+                      experiment_ids.size()));
+    }
   }
 
   // Write identifiers
@@ -85,9 +89,11 @@ void write_experiment_metadata(hid_t group_id,
     h5utils::H5Space space(H5Screate_simple(1, &dims, nullptr));
 
     h5utils::H5Type str_type(H5Tcopy(H5T_C_S1));
-    H5Tset_size(str_type, H5T_VARIABLE);
-    H5Tset_cset(str_type, H5T_CSET_UTF8);
-    H5Tset_strpad(str_type, H5T_STR_NULLTERM);
+    if (!str_type || H5Tset_size(str_type, H5T_VARIABLE) < 0 ||
+        H5Tset_cset(str_type, H5T_CSET_UTF8) < 0 ||
+        H5Tset_strpad(str_type, H5T_STR_NULLTERM) < 0) {
+      throw std::runtime_error("Failed to create identifiers string type");
+    }
 
     std::vector<const char *> c_strs;
     for (const auto &s : identifiers) {
@@ -96,7 +102,11 @@ void write_experiment_metadata(hid_t group_id,
 
     h5utils::H5Attr attr(H5Acreate2(group_id, "identifiers", str_type, space,
                                     H5P_DEFAULT, H5P_DEFAULT));
-    H5Awrite(attr, str_type, c_strs.data());
+    if (!space || !attr || H5Awrite(attr, str_type, c_strs.data()) < 0) {
+      throw std::runtime_error(
+          fmt::format("Failed to write identifiers attribute ({} entries)",
+                      identifiers.size()));
+    }
   }
 }
 #pragma endregion

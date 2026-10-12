@@ -186,9 +186,13 @@ void ReflectionTable::write(std::string_view filename,
   // Suppress errors when opening non-existent files, groups, datasets..
   H5ErrorSilencer silencer;
 
-  // 🗂️ Create (or truncate) the file
+  // Create (or truncate) the file
+  h5utils::H5Plist fapl = h5utils::make_v18_file_access_plist();
+  if (!fapl) {
+    throw std::runtime_error("Failed to create file access property list");
+  }
   h5utils::H5File file(
-      H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT));
+      H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl));
   if (!file) {
     throw std::runtime_error("Failed to create or open file: " + fname);
   }
