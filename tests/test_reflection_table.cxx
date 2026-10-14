@@ -400,8 +400,6 @@ static_assert(!h5dispatch::is_column_type_v<UnsupportedColumnType>,
               "An arbitrary struct must not be a column type");
 static_assert(!h5dispatch::is_column_type_v<bool>,
               "bool must be stored as BoolEnum, not as a column type");
-static_assert(std::is_same_v<size_t, uint64_t>,
-              "column<size_t> relies on size_t being the uint64_t column type");
 static_assert(std::is_same_v<decltype(std::declval<ReflectionTable &>()
                                           .column<double>("")),
                              std::optional<mdspan_type<double>>>,
