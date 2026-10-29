@@ -15,6 +15,9 @@ target_link_libraries(test_detector_attenuations GTest::gtest_main dx2)
 add_executable(test_goniometer test_goniometer.cxx)
 target_link_libraries(test_goniometer GTest::gtest_main dx2 nlohmann_json::nlohmann_json)
 
+add_executable(test_h5dispatch test_h5dispatch.cxx)
+target_link_libraries(test_h5dispatch GTest::gtest_main dx2 hdf5::hdf5)
+
 add_executable(test_write_h5_array test_write_h5_array.cxx)
 target_link_libraries(test_write_h5_array GTest::gtest_main dx2 hdf5::hdf5)
 
@@ -34,6 +37,7 @@ set(DX2_TESTS
     test_beam_ops
     test_detector_attenuations
     test_goniometer
+    test_h5dispatch
     test_write_h5_array
     test_read_h5_array
     test_reflection_table
