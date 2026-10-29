@@ -9,6 +9,12 @@ jobs:
       run:
         shell: bash -l {0}
     runs-on: ${{ matrix.os }}-latest
+    env:
+      CCACHE_DIR: ${{ runner.temp }}/ccache
+      # The default compiler check compares the compiler's mtime, which a
+      # fresh conda install may not preserve, so compare contents instead.
+      CCACHE_COMPILERCHECK: content
+      DEPS_DIR: ${{ runner.temp }}/deps
     steps:
       - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v4
@@ -18,8 +24,49 @@ jobs:
       - name: Install dependencies
         run: |
           conda env update --file requirements.txt --name test
+          conda install --yes --name test ccache
           conda list
+      # Each run restores the newest cache under the prefix and saves its
+      # own under the commit, so the cache rolls forward rather than
+      # freezing at the first save.
+      - name: Restore ccache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+      # Persist the fetched dependency sources so a configure does not
+      # depend on reaching every git host. The key covers the files that
+      # choose the dependencies and the toolchain, so a changed pin or
+      # environment starts from an empty directory.
+      - name: Restore dependency sources
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.DEPS_DIR }}
+          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'requirements.txt') }}-${{ github.sha }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'requirements.txt') }}-
+      # The cache action does not report which key matched, so list each
+      # restored dependency with the commit it sits at.
+      - name: Report restored dependency sources
+        run: |
+          if ! compgen -G "$DEPS_DIR/*-src" > /dev/null; then
+            echo "No dependency sources restored, cold start"
+            exit 0
+          fi
+          for src in "$DEPS_DIR"/*-src; do
+            [ -d "$src" ] || continue
+            rev=$(git -C "$src" rev-parse --short HEAD 2>/dev/null || echo "?")
+            echo "$(basename "$src" -src) ${rev} $(du -sh "$src" | cut -f1)"
+          done
       - name: Build
-        run: mkdir build && cd build && cmake .. && make
+        run: |
+          ccache --zero-stats
+          cmake -B build \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DFETCHCONTENT_BASE_DIR="$DEPS_DIR"
+          cmake --build build
+          ccache --show-stats
       - name: Run tests
         run: cd build && ctest -L dx2tests --output-on-failure
