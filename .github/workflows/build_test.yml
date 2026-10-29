@@ -51,8 +51,10 @@ jobs:
           key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'requirements.txt') }}
       # List each restored dependency with the commit it sits at. The
       # directory starts empty on every job, so anything in it came from
-      # the cache.
+      # the cache. A login shell runs ~/.bash_logout on exit, which can fail
+      # the step, and this step does not need the conda environment.
       - name: Report restored dependency sources
+        shell: bash
         run: |
           if ! compgen -G "$DEPS_DIR/*-src" > /dev/null; then
             echo "No dependency sources restored, every dependency will be fetched"
