@@ -10,13 +10,17 @@ jobs:
         shell: bash -l {0}
     runs-on: ${{ matrix.os }}-latest
     env:
-      CCACHE_DIR: ${{ runner.temp }}/ccache
       # The default compiler check compares the compiler's mtime, which a
       # fresh conda install may not preserve, so compare contents instead.
       CCACHE_COMPILERCHECK: content
-      DEPS_DIR: ${{ runner.temp }}/deps
     steps:
       - uses: actions/checkout@v7
+      # The runner context is not available in the job env, so the cache
+      # directories are set here for every later step.
+      - name: Set cache directories
+        run: |
+          echo "CCACHE_DIR=${RUNNER_TEMP}/ccache" >> "$GITHUB_ENV"
+          echo "DEPS_DIR=${RUNNER_TEMP}/deps" >> "$GITHUB_ENV"
       - uses: conda-incubator/setup-miniconda@v4
         with:
           channels: conda-forge
@@ -37,22 +41,21 @@ jobs:
           restore-keys: |
             ccache-${{ runner.os }}-
       # Persist the fetched dependency sources so a configure does not
-      # depend on reaching every git host. The key covers the files that
-      # choose the dependencies and the toolchain, so a changed pin or
-      # environment starts from an empty directory.
+      # depend on reaching every git host. The build uses them as they are,
+      # so the key covers the file that pins them and the one that chooses
+      # the toolchain.
       - name: Restore dependency sources
         uses: actions/cache@v6
         with:
           path: ${{ env.DEPS_DIR }}
-          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'requirements.txt') }}-${{ github.sha }}
-          restore-keys: |
-            deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'requirements.txt') }}-
-      # The cache action does not report which key matched, so list each
-      # restored dependency with the commit it sits at.
+          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'requirements.txt') }}
+      # List each restored dependency with the commit it sits at. The
+      # directory starts empty on every job, so anything in it came from
+      # the cache.
       - name: Report restored dependency sources
         run: |
           if ! compgen -G "$DEPS_DIR/*-src" > /dev/null; then
-            echo "No dependency sources restored, cold start"
+            echo "No dependency sources restored, every dependency will be fetched"
             exit 0
           fi
           for src in "$DEPS_DIR"/*-src; do
@@ -60,12 +63,22 @@ jobs:
             rev=$(git -C "$src" rev-parse --short HEAD 2>/dev/null || echo "?")
             echo "$(basename "$src" -src) ${rev} $(du -sh "$src" | cut -f1)"
           done
+      # Each cached source is passed to cmake as an override, since
+      # FetchContent keeps its download record in the build tree and would
+      # re-clone it.
       - name: Build
         run: |
+          deps_args=()
+          for src in "$DEPS_DIR"/*-src; do
+            [ -d "$src" ] || continue
+            name=$(basename "$src" -src | tr a-z A-Z)
+            deps_args+=("-DFETCHCONTENT_SOURCE_DIR_${name}=$src")
+          done
           ccache --zero-stats
           cmake -B build \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DFETCHCONTENT_BASE_DIR="$DEPS_DIR"
+            -DFETCHCONTENT_BASE_DIR="$DEPS_DIR" \
+            "${deps_args[@]}"
           cmake --build build
           ccache --show-stats
       - name: Run tests
