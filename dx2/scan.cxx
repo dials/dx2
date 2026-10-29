@@ -35,20 +35,18 @@ Scan::Scan(json scan_data) {
     // Unlikely to happen but check anyway for safety.
     throw std::invalid_argument(
         "scan['properties']['oscillation'] has no values in the scan JSON");
-  }
-  else if (osc_array.size() == 1) {
-    // SSX scans just have a single oscillation value (the start angle, usually 0).
-    // Therefore by convention the oscillation width is 0. The dials/dxtbx output
-    // should probably be changed to have two oscillation values both of zero as
-    // a consistent model.
+  } else if (osc_array.size() == 1) {
+    // SSX scans just have a single oscillation value (the start angle, usually
+    // 0). Therefore by convention the oscillation width is 0. The dials/dxtbx
+    // output should probably be changed to have two oscillation values both of
+    // zero as a consistent model.
     oscillation.push_back(osc_array[0]);
     oscillation_start_ = oscillation[0];
     oscillation_width_ = 0;
-  }
-  else {
+  } else {
     // Typical rotation scan.
     for (json::iterator it = osc_array.begin(); it != osc_array.begin() + 2;
-        ++it) {
+         ++it) {
       oscillation.push_back(*it);
     }
     oscillation_start_ = oscillation[0];
@@ -67,7 +65,7 @@ json Scan::to_json() const {
   }
   json properties;
   properties["oscillation"] = oscillation_array;
-  if (oscillation_array.size() == 1){
+  if (oscillation_array.size() == 1) {
     properties["oscillation_width"] = 0;
   }
   scan_data["properties"] = properties;
