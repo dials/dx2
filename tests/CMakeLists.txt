@@ -3,6 +3,9 @@ include(GoogleTest)
 add_executable(test_crystal test_crystal.cxx)
 target_link_libraries(test_crystal GTest::gtest_main dx2 Eigen3::Eigen nlohmann_json::nlohmann_json gemmi::gemmi_cpp)
 
+add_executable(test_scan test_scan.cxx)
+target_link_libraries(test_scan GTest::gtest_main dx2 nlohmann_json::nlohmann_json)
+
 add_executable(test_beam test_beam.cxx)
 target_link_libraries(test_beam GTest::gtest_main dx2 Eigen3::Eigen nlohmann_json::nlohmann_json)
 
@@ -34,6 +37,7 @@ target_link_libraries(test_reflection_table GTest::gtest_main dx2)
 set(DX2_TESTS
     test_crystal
     test_beam
+    test_scan
     test_beam_ops
     test_detector_attenuations
     test_goniometer
