@@ -9,8 +9,18 @@ jobs:
       run:
         shell: bash -l {0}
     runs-on: ${{ matrix.os }}-latest
+    env:
+      # The default compiler check compares the compiler's mtime, which a
+      # fresh conda install may not preserve, so compare contents instead.
+      CCACHE_COMPILERCHECK: content
     steps:
       - uses: actions/checkout@v7
+      # The runner context is not available in the job env, so the cache
+      # directories are set here for every later step.
+      - name: Set cache directories
+        run: |
+          echo "CCACHE_DIR=${RUNNER_TEMP}/ccache" >> "$GITHUB_ENV"
+          echo "DEPS_DIR=${RUNNER_TEMP}/deps" >> "$GITHUB_ENV"
       - uses: conda-incubator/setup-miniconda@v4
         with:
           channels: conda-forge
@@ -18,8 +28,60 @@ jobs:
       - name: Install dependencies
         run: |
           conda env update --file requirements.txt --name test
+          conda install --yes --name test ccache
           conda list
+      # Each run restores the newest cache under the prefix and saves its
+      # own under the commit, so the cache rolls forward rather than
+      # freezing at the first save.
+      - name: Restore ccache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+      # Persist the fetched dependency sources so a configure does not
+      # depend on reaching every git host. The build uses them as they are,
+      # so the key covers the file that pins them and the one that chooses
+      # the toolchain.
+      - name: Restore dependency sources
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.DEPS_DIR }}
+          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'requirements.txt') }}
+      # List each restored dependency with the commit it sits at. The
+      # directory starts empty on every job, so anything in it came from
+      # the cache. A login shell runs ~/.bash_logout on exit, which can fail
+      # the step, and this step does not need the conda environment.
+      - name: Report restored dependency sources
+        shell: bash
+        run: |
+          if ! compgen -G "$DEPS_DIR/*-src" > /dev/null; then
+            echo "No dependency sources restored, every dependency will be fetched"
+            exit 0
+          fi
+          for src in "$DEPS_DIR"/*-src; do
+            [ -d "$src" ] || continue
+            rev=$(git -C "$src" rev-parse --short HEAD 2>/dev/null || echo "?")
+            echo "$(basename "$src" -src) ${rev} $(du -sh "$src" | cut -f1)"
+          done
+      # Each cached source is passed to cmake as an override, since
+      # FetchContent keeps its download record in the build tree and would
+      # re-clone it.
       - name: Build
-        run: mkdir build && cd build && cmake .. && make
+        run: |
+          deps_args=()
+          for src in "$DEPS_DIR"/*-src; do
+            [ -d "$src" ] || continue
+            name=$(basename "$src" -src | tr a-z A-Z)
+            deps_args+=("-DFETCHCONTENT_SOURCE_DIR_${name}=$src")
+          done
+          ccache --zero-stats
+          cmake -B build \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DFETCHCONTENT_BASE_DIR="$DEPS_DIR" \
+            "${deps_args[@]}"
+          cmake --build build
+          ccache --show-stats
       - name: Run tests
         run: cd build && ctest -L dx2tests --output-on-failure
