@@ -1,4 +1,6 @@
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   build_test:
     name: Build/Test
