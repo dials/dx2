@@ -1,4 +1,8 @@
-on: [push, pull_request]
+on:
+  push:
+    branches: ["main"]
+  pull_request: null
+  workflow_dispatch: null
 permissions:
   contents: read
 jobs:
