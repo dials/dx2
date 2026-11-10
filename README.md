@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-- Ensure you have an environment with CMake and compilers available (see requirements.txt)
+- Ensure you have an environment with CMake and compilers available (see environment.yml)
 - Dependencies:
     - HDF5 (Required)
     - gemmi (Required)

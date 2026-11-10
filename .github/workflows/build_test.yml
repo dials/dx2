@@ -33,8 +33,7 @@ jobs:
           conda-remove-defaults: true
       - name: Install dependencies
         run: |
-          conda env update --file requirements.txt --name test
-          conda install --yes --name test ccache
+          conda env update --file environment.yml --name test
           conda list
       # Each run restores the newest cache under the prefix and saves its
       # own under the commit, so the cache rolls forward rather than
@@ -54,7 +53,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.DEPS_DIR }}
-          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'requirements.txt') }}
+          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'environment.yml') }}
       # List each restored dependency with the commit it sits at. The
       # directory starts empty on every job, so anything in it came from
       # the cache. A login shell runs ~/.bash_logout on exit, which can fail
