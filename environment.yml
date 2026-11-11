@@ -9,7 +9,7 @@ dependencies:
   - ccache=4.14.1
   - gemmi=0.7.5
   - cmake=4.4.5
-  - hdf5=1.14.6
+  - hdf5=1.14.* # Held on 1.14; the move to 2.x is a migration made by hand
   - hdf5-external-filter-plugins=0.1.0
   - nlohmann_json=3.12.0
   - fmt=12.2.0
