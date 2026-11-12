@@ -1,10 +1,12 @@
 name: Docs
-on: [push, pull_request]
-# Allow the deploy job to publish to GitHub Pages.
+on:
+  push:
+    branches: ["main"]
+  pull_request: null
+  workflow_dispatch: null
+# Read-only by default; only the deploy job can publish.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 # Cancel superseded runs on the same ref.
 concurrency:
   group: docs-${{ github.ref }}
@@ -14,12 +16,12 @@ jobs:
     name: Build docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Doxygen only parses the source, so no C++ toolchain or the
       # HDF5/gemmi/Eigen dependencies are needed here.
       - name: Install Doxygen and Graphviz
         run: sudo apt-get update && sudo apt-get install -y doxygen graphviz
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
       - name: Install Python dependencies
@@ -30,13 +32,13 @@ jobs:
       # artifact so reviewers can preview the docs without building.
       - name: Upload preview artifact
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: docs-html
           path: docs/_build/html
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: docs/_build/html
   deploy:
@@ -45,10 +47,14 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build
     runs-on: ubuntu-latest
+    # Publishing to Pages authenticates with an OIDC token
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
