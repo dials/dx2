@@ -20,14 +20,14 @@ jobs:
       # fresh conda install may not preserve, so compare contents instead.
       CCACHE_COMPILERCHECK: content
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
       # The runner context is not available in the job env, so the cache
       # directories are set here for every later step.
       - name: Set cache directories
         run: |
           echo "CCACHE_DIR=${RUNNER_TEMP}/ccache" >> "$GITHUB_ENV"
           echo "DEPS_DIR=${RUNNER_TEMP}/deps" >> "$GITHUB_ENV"
-      - uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
+      - uses: conda-incubator/setup-miniconda@v4.1.0
         with:
           channels: conda-forge
           conda-remove-defaults: true
@@ -39,7 +39,7 @@ jobs:
       # own under the commit, so the cache rolls forward rather than
       # freezing at the first save.
       - name: Restore ccache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ccache-${{ runner.os }}-${{ github.sha }}
@@ -50,7 +50,7 @@ jobs:
       # so the key covers the file that pins them and the one that chooses
       # the toolchain.
       - name: Restore dependency sources
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ env.DEPS_DIR }}
           key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'environment.yml') }}
