@@ -24,7 +24,7 @@ public:
     std::shared_ptr<Crystal> crystal = nullptr; // Optional models default to null
   };
 
-  explicit Experiment(Models models, std::string identifier);
+  explicit Experiment(Models models, std::string identifier={});
 
   Experiment(const json &experiment_data);
   
