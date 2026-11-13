@@ -13,7 +13,7 @@ workflows:
     '.github/workflows/docs.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/deploy-pages@v5.0.1'
-        - 'actions/setup-python@v6.3.0'
+        - 'actions/setup-python@v7.1.0'
         - 'actions/upload-artifact@v7.0.2'
         - 'actions/upload-pages-artifact@v5.0.0'
 dependencies:
@@ -32,9 +32,9 @@ dependencies:
         commit: 'sha1-368f82528645a54fb793d4d04e342629a3f51346'
         owner_id: 44036562
         repo_id: 438112499
-    'actions/setup-python@v6.3.0':
-        ref: 'v6.3.0'
-        commit: 'sha1-ece7cb06caefa5fff74198d8649806c4678c61a1'
+    'actions/setup-python@v7.1.0':
+        ref: 'v7.1.0'
+        commit: 'sha1-6d4fd22b20465ccc0f7354476588e8df7c9ca0e0'
         owner_id: 44036562
         repo_id: 192625525
     'actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f':
