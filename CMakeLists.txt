@@ -11,6 +11,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
     include(SetDefaultBuildRelWithDebInfo)
     include(AlwaysColourCompilation)
+    include(CheckCondaPins)
 endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
