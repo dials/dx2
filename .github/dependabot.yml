@@ -1,7 +1,8 @@
-# The workflow actions are pinned to commit SHAs, which never move on
-# their own; this keeps them current. Dependabot reads the version from
-# the trailing comment on each pin and rewrites both together. The conda
-# pins are kept current by the Conda update workflow instead.
+# The workflow actions name exact releases, so they never move to a newer
+# version on their own; this keeps them current. Each release is locked
+# to its commit in .github/workflows/actions.lock, and Dependabot
+# regenerates the matching entry in the same pull request. The conda pins
+# are kept current by the Conda update workflow instead.
 version: 2
 updates:
   - package-ecosystem: github-actions
