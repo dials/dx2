@@ -344,6 +344,8 @@ json Detector::to_json() const {
 
 const std::vector<Panel> &Detector::panels() const { return _panels; }
 
+std::vector<Panel> &Detector::panels() { return _panels; }
+
 void Detector::update(Matrix3d d) { _panels[0].update(d); }
 
 std::optional<intersection>
