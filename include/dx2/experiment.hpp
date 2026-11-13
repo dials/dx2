@@ -42,10 +42,6 @@ public:
 
   explicit Experiment(Models models, std::string identifier={});
 
-  Experiment(const json &experiment_data);
-  
-  json to_json() const;
-
   // These models should always exist as they are defined by the experiment metadata
 
   Beam& beam() { return *_models.beam; }
@@ -67,12 +63,13 @@ public:
   Crystal& crystal();
   const Crystal& crystal() const;
   bool has_crystal() const { return static_cast<bool>(_models.crystal);}
-
-  const std::string &identifier() const;
-
-  void set_crystal(std::shared_ptr<Crystal> crystal);
+  
   void set_crystal(Crystal crystal);
-  void set_identifier(std::string identifier);
+  void set_crystal(std::shared_ptr<Crystal> crystal);
+  
+  const std::string& identifier() const { return _identifier; }
+  void set_identifier(std::string identifier) { _identifier = identifier; }
+  
   void generate_identifier();
 
 private:
