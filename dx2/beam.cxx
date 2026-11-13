@@ -138,7 +138,7 @@ json MonochromaticBeam::to_json() const {
   return to_json("x-ray");
 }
 
-void MonochromaticBeam::update(const MonochromaticBeam& beam){
+void MonochromaticBeam::update(const MonochromaticBeam &beam) {
   Vector3d s0 = beam.get_s0();
   polarization_normal_ = beam.get_polarization_normal();
   polarization_fraction_ = beam.get_polarization_fraction();
@@ -229,7 +229,7 @@ void PolychromaticBeam::set_wavelength_range(
   wavelength_range_ = wavelength_range;
 }
 
-void PolychromaticBeam::update(const PolychromaticBeam& beam){
+void PolychromaticBeam::update(const PolychromaticBeam &beam) {
   wavelength_range_ = beam.get_wavelength_range();
   polarization_normal_ = beam.get_polarization_normal();
   polarization_fraction_ = beam.get_polarization_fraction();

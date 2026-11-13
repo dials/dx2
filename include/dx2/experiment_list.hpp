@@ -12,9 +12,9 @@ public:
 
   std::size_t size() const { return _experiments.size(); }
 
-  Experiment& operator[](std::size_t i) { return _experiments[i]; }
+  Experiment &operator[](std::size_t i) { return _experiments[i]; }
 
-  const Experiment& operator[](std::size_t i) const { return _experiments[i]; }
+  const Experiment &operator[](std::size_t i) const { return _experiments[i]; }
 
   auto begin() { return _experiments.begin(); }
   auto end() { return _experiments.end(); }
@@ -22,9 +22,11 @@ public:
   auto begin() const { return _experiments.begin(); }
   auto end() const { return _experiments.end(); }
 
-  ExperimentList select(const std::vector<std::string>& identifiers) const; // Select on identifiers
+  ExperimentList select(const std::vector<std::string> &identifiers)
+      const; // Select on identifiers
 
-  ExperimentList select(const std::vector<std::size_t>& indices) const; // Select on indices
+  ExperimentList
+  select(const std::vector<std::size_t> &indices) const; // Select on indices
 
   void append(Experiment experiment);
 

@@ -13,11 +13,9 @@
 TEST(ModelTests, ExperimentTest) {
 
   Experiment::Models models(
-    std::make_shared<Beam>(),
-    std::make_shared<Detector>(),
-    std::make_shared<Scan>(),
-    std::make_shared<Goniometer>(),
-    std::make_shared<ImageSequence>());
+      std::make_shared<Beam>(), std::make_shared<Detector>(),
+      std::make_shared<Scan>(), std::make_shared<Goniometer>(),
+      std::make_shared<ImageSequence>());
 
   Experiment expt(models);
 
@@ -34,7 +32,7 @@ TEST(ModelTests, ExperimentTest) {
   bool threw = false;
   try {
     (void)expt.crystal();
-  } catch (const std::runtime_error&) {
+  } catch (const std::runtime_error &) {
     threw = true;
   }
   assert(threw);
@@ -53,5 +51,4 @@ TEST(ModelTests, ExperimentTest) {
 
   // Identifier generated automatically
   assert(!expt.identifier().empty());
-
 }

@@ -62,7 +62,7 @@ public:
   void set_wavelength(double wavelength);
   Vector3d get_s0() const;
   void set_s0(Vector3d const s0);
-  void update(const MonochromaticBeam& beam);
+  void update(const MonochromaticBeam &beam);
 
 protected:
   double wavelength_{0.0};
@@ -102,7 +102,7 @@ public:
   json to_json() const; // overload for default
   std::array<double, 2> get_wavelength_range() const;
   void set_wavelength_range(std::array<double, 2> wavelength_range);
-  void update(const PolychromaticBeam& beam);
+  void update(const PolychromaticBeam &beam);
 
 protected:
   std::array<double, 2> wavelength_range_{{0.0, 0.0}};
