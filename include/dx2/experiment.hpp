@@ -12,16 +12,32 @@
 using Eigen::Vector3d;
 using json = nlohmann::json;
 
+class ExperimentList; // forward declaration
+
 class Experiment {
+  friend class ExperimentList;
 public:
 
   struct Models {
+    Models(std::shared_ptr<Beam> beam,
+          std::shared_ptr<Detector> detector,
+          std::shared_ptr<Scan> scan,
+          std::shared_ptr<Goniometer> goniometer,
+          std::shared_ptr<ImageSequence> imagesequence,
+          std::shared_ptr<Crystal> crystal = nullptr) // Optional argument
+        : beam(std::move(beam)),
+          detector(std::move(detector)),
+          scan(std::move(scan)),
+          goniometer(std::move(goniometer)),
+          imagesequence(std::move(imagesequence)),
+          crystal(std::move(crystal)) {}
+
     std::shared_ptr<Beam> beam;
     std::shared_ptr<Detector> detector;
     std::shared_ptr<Scan> scan;
     std::shared_ptr<Goniometer> goniometer;
     std::shared_ptr<ImageSequence> imagesequence;
-    std::shared_ptr<Crystal> crystal = nullptr; // Optional models default to null
+    std::shared_ptr<Crystal> crystal;
   };
 
   explicit Experiment(Models models, std::string identifier={});

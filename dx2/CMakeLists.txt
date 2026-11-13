@@ -12,6 +12,7 @@ add_library(
     detector_attenuations.cxx
     imagesequence.cxx
     experiment.cxx
+    experiment_list.cxx
     beam_ops.cxx
     beam_io.cxx
 )

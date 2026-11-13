@@ -8,10 +8,35 @@ Experiment::Experiment(Models models, std::string identifier)
     }
    }
 
-Experiment::Experiment(const json &experiment_data) {
+Experiment::Experiment(const json &experiment_data)
+  : _models(
+        std::make_shared<Beam>(
+            beam_io::from_json(experiment_data["beam"][0])),
+        std::make_shared<Detector>(
+            Detector(experiment_data["detector"][0])),
+        std::make_shared<Scan>(
+            Scan(experiment_data["scan"][0])),
+        std::make_shared<Goniometer>(
+            Goniometer(experiment_data["goniometer"][0])),
+        std::make_shared<ImageSequence>(
+            ImageSequence(experiment_data["imageset"][0])))
+{
+    _identifier = experiment_data["experiment"][0]["identifier"];
+
+    if (experiment_data.contains("crystal") &&
+        experiment_data["crystal"].is_array() &&
+        !experiment_data["crystal"].empty()) {
+
+        _models.crystal =
+            std::make_shared<Crystal>(
+                experiment_data["crystal"][0]);
+    }
+}
+
+
+/*Experiment::Experiment(const json &experiment_data) {
   std::string identifier = experiment_data["experiment"][0]["identifier"];
   json beam_data = experiment_data["beam"][0];
-  Beam beam = beam_io::from_json(beam_data);
   json scan_data = experiment_data["scan"][0];
   Scan scan(scan_data);
   json gonio_data = experiment_data["goniometer"][0];
@@ -19,7 +44,7 @@ Experiment::Experiment(const json &experiment_data) {
   json detector_data = experiment_data["detector"][0];
   Detector detector(detector_data);
   this->_identifier = identifier;
-  _models.beam = std::make_shared<Beam>(beam);
+  _models.beam = std::make_shared<Beam>(beam_io::from_json(beam_data));
   _models.scan = std::make_shared<Scan>(scan);
   _models.goniometer = std::make_shared<Goniometer>(gonio);
   _models.detector = std::make_shared<Detector>(detector);
@@ -34,7 +59,7 @@ Experiment::Experiment(const json &experiment_data) {
     Crystal crystal(crystal_data);
     set_crystal(crystal);
   }
-}
+}*/
 
 json Experiment::to_json() const {
   // save this experiment as an example experiment list
