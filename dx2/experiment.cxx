@@ -12,20 +12,20 @@ Experiment::Experiment(const json &experiment_data) {
   json detector_data = experiment_data["detector"][0];
   Detector detector(detector_data);
   this->_identifier = identifier;
-  this->_beam = std::move(beam);
-  this->_scan = std::move(scan);
-  this->_goniometer = std::move(gonio);
-  this->_detector = std::move(detector);
+  _beam = std::make_shared<Beam>(beam);
+  _scan = std::make_shared<Scan>(scan);
+  _goniometer = std::make_shared<Goniometer>(gonio);
+  >_detector = std::make_shared<Detector>(detector);
   // Save the imageset json to propagate when saving to file.
   json imagesequence_data = experiment_data["imageset"][0];
   ImageSequence imagesequence(imagesequence_data);
-  this->_imagesequence = imagesequence;
+  _imagesequence = std::make_shared<ImageSequence>(imagesequence);
   if (experiment_data.contains("crystal") &&
       experiment_data["crystal"].is_array() &&
       !experiment_data["crystal"].empty()) {
     const json &crystal_data = experiment_data["crystal"][0];
     Crystal crystal(crystal_data);
-    this->_crystal = crystal;
+    set_crystal(crystal);
   }
 }
 
@@ -44,15 +44,15 @@ json Experiment::to_json() const {
   expt_out["imageset"] = 0;
 
   // add the the actual models
-  elist_out["scan"] = std::array<json, 1>{_scan.to_json()};
-  elist_out["goniometer"] = std::array<json, 1>{_goniometer.to_json()};
-  elist_out["beam"] = std::array<json, 1>{beam_io::to_json(_beam)};
-  elist_out["detector"] = std::array<json, 1>{_detector.to_json()};
-  elist_out["imageset"] = std::array<json, 1>{_imagesequence.to_json()};
+  elist_out["scan"] = std::array<json, 1>{_scan->to_json()};
+  elist_out["goniometer"] = std::array<json, 1>{_goniometer->to_json()};
+  elist_out["beam"] = std::array<json, 1>{beam_io::to_json(*_beam)};
+  elist_out["detector"] = std::array<json, 1>{_detector->to_json()};
+  elist_out["imageset"] = std::array<json, 1>{_imagesequence->to_json()};
 
-  if (_crystal.get_U_matrix().determinant()) {
+  if (_crystal) {
     expt_out["crystal"] = 0;
-    elist_out["crystal"] = std::array<json, 1>{_crystal.to_json()};
+    elist_out["crystal"] = std::array<json, 1>{_crystal->to_json()};
   } else {
     elist_out["crystal"] = std::array<json, 0>{};
   }
@@ -61,34 +61,22 @@ json Experiment::to_json() const {
   return elist_out;
 }
 
-Scan &Experiment::scan() { return _scan; }
+void Experiment::set_crystal(Crystal crystal) { _crystal = std::make_shared<Crystal>(std::move(crystal)); }
 
-const Goniometer &Experiment::goniometer() const { return _goniometer; }
+void Experiment::set_crystal(std::shared_ptr<Crystal> crystal){_crystal = std::move(crystal);}
 
-Detector &Experiment::detector() { return _detector; }
+void Experiment::set_beam(std::shared_ptr<Beam> beam) { _beam = std::move(beam); }
 
-Crystal &Experiment::crystal() { return _crystal; }
+void Experiment::set_scan(std::shared_ptr<Scan> scan) { _scan = std::move(scan); }
 
-ImageSequence &Experiment::imagesequence() { return _imagesequence; }
+void Experiment::set_detector(std::shared_ptr<Detector> detector) { _detector = std::move(detector); }
 
-void Experiment::set_crystal(Crystal crystal) { _crystal = crystal; }
-
-void Experiment::set_beam(Beam beam) { _beam = std::move(beam); }
-
-Beam &Experiment::beam() { return _beam; }
-
-const Beam &Experiment::beam() const { return _beam; }
-
-void Experiment::set_scan(Scan scan) { _scan = scan; }
-
-void Experiment::set_detector(Detector detector) { _detector = detector; }
-
-void Experiment::set_goniometer(Goniometer goniometer) {
-  _goniometer = goniometer;
+void Experiment::set_goniometer(std::shared_ptr<Goniometer> goniometer) {
+  _goniometer = std::move(goniometer);
 }
 
-void Experiment::set_imagesequence(ImageSequence imagesequence) {
-  _imagesequence = imagesequence;
+void Experiment::set_imagesequence(std::shared_ptr<ImageSequence> imagesequence) {
+  _imagesequence = std::move(imagesequence);
 }
 
 const std::string &Experiment::identifier() const { return _identifier; }
