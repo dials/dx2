@@ -233,6 +233,23 @@ ExperimentList ExperimentList::select(
     return result;
 }
 
+ExperimentList ExperimentList::select(
+    const std::vector<std::size_t>& indices) const {
+
+    ExperimentList result;
+
+    for (std::size_t i : indices) {
+        if (i >= _experiments.size()) {
+            throw std::out_of_range(
+                "Experiment index out of range");
+        }
+
+        result.append(_experiments[i]);
+    }
+
+    return result;
+}
+
 void ExperimentList::append(Experiment experiment) {
     _experiments.push_back(std::move(experiment));
 }
