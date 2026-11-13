@@ -114,6 +114,7 @@ public:
   Detector(std::vector<Panel> panels);
   json to_json() const;
   const std::vector<Panel> &panels() const;
+  std::vector<Panel> &panels();
   std::optional<intersection> get_ray_intersection(const Vector3d &s1) const;
   void update(Matrix3d d);
 
