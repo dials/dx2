@@ -1,6 +1,13 @@
 #include <dx2/beam_io.hpp>
 #include <dx2/experiment.hpp>
 
+Experiment::Experiment(Models models, std::string identifier)
+   : _models(std::move(models)), _identifier(std::move(identifier)){
+    if (_identifier.empty()) {
+      generate_identifier();
+    }
+   }
+
 Experiment::Experiment(const json &experiment_data) {
   std::string identifier = experiment_data["experiment"][0]["identifier"];
   json beam_data = experiment_data["beam"][0];
@@ -12,14 +19,14 @@ Experiment::Experiment(const json &experiment_data) {
   json detector_data = experiment_data["detector"][0];
   Detector detector(detector_data);
   this->_identifier = identifier;
-  _beam = std::make_shared<Beam>(beam);
-  _scan = std::make_shared<Scan>(scan);
-  _goniometer = std::make_shared<Goniometer>(gonio);
-  >_detector = std::make_shared<Detector>(detector);
+  _models.beam = std::make_shared<Beam>(beam);
+  _models.scan = std::make_shared<Scan>(scan);
+  _models.goniometer = std::make_shared<Goniometer>(gonio);
+  _models.detector = std::make_shared<Detector>(detector);
   // Save the imageset json to propagate when saving to file.
   json imagesequence_data = experiment_data["imageset"][0];
   ImageSequence imagesequence(imagesequence_data);
-  _imagesequence = std::make_shared<ImageSequence>(imagesequence);
+  _models.imagesequence = std::make_shared<ImageSequence>(imagesequence);
   if (experiment_data.contains("crystal") &&
       experiment_data["crystal"].is_array() &&
       !experiment_data["crystal"].empty()) {
@@ -44,15 +51,15 @@ json Experiment::to_json() const {
   expt_out["imageset"] = 0;
 
   // add the the actual models
-  elist_out["scan"] = std::array<json, 1>{_scan->to_json()};
-  elist_out["goniometer"] = std::array<json, 1>{_goniometer->to_json()};
-  elist_out["beam"] = std::array<json, 1>{beam_io::to_json(*_beam)};
-  elist_out["detector"] = std::array<json, 1>{_detector->to_json()};
-  elist_out["imageset"] = std::array<json, 1>{_imagesequence->to_json()};
+  elist_out["scan"] = std::array<json, 1>{_models.scan->to_json()};
+  elist_out["goniometer"] = std::array<json, 1>{_models.goniometer->to_json()};
+  elist_out["beam"] = std::array<json, 1>{beam_io::to_json(*_models.beam)};
+  elist_out["detector"] = std::array<json, 1>{_models.detector->to_json()};
+  elist_out["imageset"] = std::array<json, 1>{_models.imagesequence->to_json()};
 
-  if (_crystal) {
+  if (has_crystal()) {
     expt_out["crystal"] = 0;
-    elist_out["crystal"] = std::array<json, 1>{_crystal->to_json()};
+    elist_out["crystal"] = std::array<json, 1>{_models.crystal->to_json()};
   } else {
     elist_out["crystal"] = std::array<json, 0>{};
   }
@@ -61,22 +68,21 @@ json Experiment::to_json() const {
   return elist_out;
 }
 
-void Experiment::set_crystal(Crystal crystal) { _crystal = std::make_shared<Crystal>(std::move(crystal)); }
+void Experiment::set_crystal(Crystal crystal) { _models.crystal = std::make_shared<Crystal>(std::move(crystal)); }
 
-void Experiment::set_crystal(std::shared_ptr<Crystal> crystal){_crystal = std::move(crystal);}
+void Experiment::set_crystal(std::shared_ptr<Crystal> crystal){_models.crystal = std::move(crystal);}
 
-void Experiment::set_beam(std::shared_ptr<Beam> beam) { _beam = std::move(beam); }
-
-void Experiment::set_scan(std::shared_ptr<Scan> scan) { _scan = std::move(scan); }
-
-void Experiment::set_detector(std::shared_ptr<Detector> detector) { _detector = std::move(detector); }
-
-void Experiment::set_goniometer(std::shared_ptr<Goniometer> goniometer) {
-  _goniometer = std::move(goniometer);
+Crystal& Experiment::crystal() {
+  if (!_models.crystal) {
+    throw std::runtime_error("Experiment has no crystal");
+  }
+  return *_models.crystal;
 }
-
-void Experiment::set_imagesequence(std::shared_ptr<ImageSequence> imagesequence) {
-  _imagesequence = std::move(imagesequence);
+const Crystal& Experiment::crystal() const {
+  if (!_models.crystal) {
+    throw std::runtime_error("Experiment has no crystal");
+  }
+  return *_models.crystal;
 }
 
 const std::string &Experiment::identifier() const { return _identifier; }
