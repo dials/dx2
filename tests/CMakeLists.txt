@@ -34,6 +34,9 @@ target_link_libraries(test_read_h5_array GTest::gtest_main dx2 hdf5::hdf5)
 add_executable(test_reflection_table test_reflection_table.cxx)
 target_link_libraries(test_reflection_table GTest::gtest_main dx2)
 
+add_executable(test_experiment test_experiment.cxx)
+target_link_libraries(test_experiment GTest::gtest_main dx2)
+
 set(DX2_TESTS
     test_crystal
     test_beam
@@ -45,6 +48,7 @@ set(DX2_TESTS
     test_write_h5_array
     test_read_h5_array
     test_reflection_table
+    test_experiment
 )
 
 # Tests that open the same HDF5 files on disk. HDF5 locks a file opened for

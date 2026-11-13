@@ -138,6 +138,14 @@ json MonochromaticBeam::to_json() const {
   return to_json("x-ray");
 }
 
+void MonochromaticBeam::update(const MonochromaticBeam &beam) {
+  Vector3d s0 = beam.get_s0();
+  polarization_normal_ = beam.get_polarization_normal();
+  polarization_fraction_ = beam.get_polarization_fraction();
+  wavelength_ = beam.get_wavelength();
+  sample_to_source_direction_ = -1.0 * s0 * wavelength_;
+}
+
 double MonochromaticBeam::get_wavelength() const { return wavelength_; }
 
 void MonochromaticBeam::set_wavelength(double wavelength) {
@@ -219,6 +227,13 @@ std::array<double, 2> PolychromaticBeam::get_wavelength_range() const {
 void PolychromaticBeam::set_wavelength_range(
     std::array<double, 2> wavelength_range) {
   wavelength_range_ = wavelength_range;
+}
+
+void PolychromaticBeam::update(const PolychromaticBeam &beam) {
+  wavelength_range_ = beam.get_wavelength_range();
+  polarization_normal_ = beam.get_polarization_normal();
+  polarization_fraction_ = beam.get_polarization_fraction();
+  // sample_to_source_direction_ = FIXME is this modifiable in Poly?
 }
 
 // MonoXrayBeam definitions
