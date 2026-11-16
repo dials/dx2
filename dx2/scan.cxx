@@ -66,7 +66,9 @@ json Scan::to_json() const {
   json properties;
   properties["oscillation"] = oscillation_array;
   if (oscillation_array.size() == 1) {
-    properties["oscillation_width"] = {0.0,};
+    properties["oscillation_width"] = {
+        0.0,
+    };
   }
   scan_data["properties"] = properties;
   // FIXME for dials compatibility, do we need exposure times and epochs arrays,
