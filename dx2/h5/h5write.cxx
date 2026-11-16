@@ -109,4 +109,40 @@ void write_experiment_metadata(hid_t group_id,
     }
   }
 }
+
+void write_file_format_attributes(hid_t file_id) {
+  h5utils::H5Space scalar(H5Screate(H5S_SCALAR));
+  if (!scalar) {
+    throw std::runtime_error("Failed to create scalar dataspace");
+  }
+
+  // file_type: variable-length UTF-8, which h5py reads back as str
+  {
+    h5utils::H5Type str_type(H5Tcopy(H5T_C_S1));
+    if (!str_type || H5Tset_size(str_type, H5T_VARIABLE) < 0 ||
+        H5Tset_cset(str_type, H5T_CSET_UTF8) < 0 ||
+        H5Tset_strpad(str_type, H5T_STR_NULLTERM) < 0) {
+      throw std::runtime_error("Failed to create file_type string type");
+    }
+
+    // A variable-length string is written as a pointer to a C string
+    const std::string value(DIALS_FILE_TYPE);
+    const char *c_str = value.c_str();
+    h5utils::H5Attr attr(H5Acreate2(file_id, "file_type", str_type, scalar,
+                                    H5P_DEFAULT, H5P_DEFAULT));
+    if (!attr || H5Awrite(attr, str_type, &c_str) < 0) {
+      throw std::runtime_error("Failed to write file_type attribute");
+    }
+  }
+
+  // file_version: int64, matching what h5py writes for a Python int
+  {
+    const int64_t value = DIALS_FILE_VERSION;
+    h5utils::H5Attr attr(H5Acreate2(file_id, "file_version", H5T_NATIVE_INT64,
+                                    scalar, H5P_DEFAULT, H5P_DEFAULT));
+    if (!attr || H5Awrite(attr, H5T_NATIVE_INT64, &value) < 0) {
+      throw std::runtime_error("Failed to write file_version attribute");
+    }
+  }
+}
 #pragma endregion
