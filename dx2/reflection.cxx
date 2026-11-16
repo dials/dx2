@@ -179,6 +179,27 @@ ReflectionTable ReflectionTable::select(const std::vector<bool> &mask) const {
 #pragma endregion
 
 #pragma region Write
+namespace {
+/// True if `path` names a group exactly three levels deep under /dials,
+/// the only place DIALS file_version 1 looks for reflection tables.
+/// Empty components from repeated or trailing slashes are ignored.
+bool is_dials_table_path(std::string_view path) {
+  std::vector<std::string_view> parts;
+  size_t start = 0;
+  while (start <= path.size()) {
+    size_t end = path.find('/', start);
+    if (end == std::string_view::npos) {
+      end = path.size();
+    }
+    if (end > start) {
+      parts.push_back(path.substr(start, end - start));
+    }
+    start = end + 1;
+  }
+  return parts.size() == 3 && parts[0] == "dials";
+}
+} // namespace
+
 // Write method
 void ReflectionTable::write(std::string_view filename,
                             std::string_view group) const {
@@ -197,6 +218,15 @@ void ReflectionTable::write(std::string_view filename,
       H5Fcreate(fname.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl));
   if (!file) {
     throw std::runtime_error("Failed to create or open file: " + fname);
+  }
+  write_file_format_attributes(file);
+
+  // DIALS reads version 1 tables only from /dials/<process>/<group>
+  if (!is_dials_table_path(gpath)) {
+    dx2_log::warning(fmt::format(
+        "Group '{}' is not of the form /dials/<process>/<group>; DIALS "
+        "will not read this file",
+        gpath));
   }
 
   // Open or create group

@@ -920,3 +920,99 @@ TEST_F(ReflectionTableTest, WriteAndReloadBoolColumn) {
   }
 }
 #pragma endregion
+
+#pragma region DIALS file format
+/*
+ * DIALS 3.31 refuses a .refl file unless its root carries file_type ==
+ * "dials_processed_data" and file_version == 1, compared through h5py as
+ * Python objects. The values are written out literally rather than taken
+ * from the dx2 constants so a typo in those constants still fails here.
+ * Type and dataspace are checked as well as value: a fixed-length string
+ * reads back as bytes and a one-element array compares as an array, and
+ * either one breaks the DIALS check while the value still looks right.
+ */
+TEST_F(ReflectionTableTest, WriteMarksFileAsDialsProcessedData) {
+  ReflectionTable table;
+  table.add_column<int>("id", std::vector<int>{0, 1});
+  std::filesystem::path temp_file = temp_path("reflection_test_file_format.h5");
+  table.write(temp_file.string());
+
+  h5utils::H5File file(
+      H5Fopen(temp_file.string().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT));
+  ASSERT_TRUE(file) << "Could not reopen " << temp_file;
+
+  // file_type: scalar, variable-length string
+  {
+    ASSERT_GT(H5Aexists(file, "file_type"), 0)
+        << "No file_type attribute on the file root";
+    h5utils::H5Attr attr(H5Aopen(file, "file_type", H5P_DEFAULT));
+    h5utils::H5Space space(H5Aget_space(attr));
+    EXPECT_EQ(H5Sget_simple_extent_type(space), H5S_SCALAR)
+        << "file_type is not scalar; h5py would return an array";
+
+    h5utils::H5Type type(H5Aget_type(attr));
+    ASSERT_EQ(H5Tget_class(type), H5T_STRING) << "file_type is not a string";
+    EXPECT_GT(H5Tis_variable_str(type), 0)
+        << "file_type is fixed-length; h5py would return bytes";
+
+    // HDF5 does not convert between character sets, so read as UTF-8
+    char *value = nullptr;
+    h5utils::H5Type mem_type(H5Tcopy(H5T_C_S1));
+    H5Tset_size(mem_type, H5T_VARIABLE);
+    H5Tset_cset(mem_type, H5T_CSET_UTF8);
+    ASSERT_GE(H5Aread(attr, mem_type, &value), 0) << "Could not read file_type";
+    std::string read_value(value);
+    H5free_memory(value);
+    EXPECT_EQ(read_value, "dials_processed_data")
+        << "file_type has the wrong value";
+  }
+
+  // file_version: scalar integer equal to 1
+  {
+    ASSERT_GT(H5Aexists(file, "file_version"), 0)
+        << "No file_version attribute on the file root";
+    h5utils::H5Attr attr(H5Aopen(file, "file_version", H5P_DEFAULT));
+    h5utils::H5Space space(H5Aget_space(attr));
+    EXPECT_EQ(H5Sget_simple_extent_type(space), H5S_SCALAR)
+        << "file_version is not scalar; h5py would return an array";
+
+    int64_t value = 0;
+    ASSERT_GE(H5Aread(attr, H5T_NATIVE_INT64, &value), 0)
+        << "Could not read file_version";
+    EXPECT_EQ(value, 1) << "file_version has the wrong value";
+  }
+}
+
+/*
+ * The file-level attributes claim the DIALS layout, which puts each table
+ * at /dials/<process>/<group>. A group path of any other shape writes a
+ * file DIALS rejects, so write() warns; a path of the right shape must
+ * stay quiet so the warning means something when it does appear.
+ */
+class DialsLayoutWarningTest
+    : public ReflectionTableTest,
+      public ::testing::WithParamInterface<std::pair<std::string, bool>> {};
+
+TEST_P(DialsLayoutWarningTest, WriteWarnsOnlyWhenGroupIsOutsideDialsLayout) {
+  const auto &[group, expect_warning] = GetParam();
+  ReflectionTable table;
+  table.add_column<int>("id", std::vector<int>{0, 1});
+  std::filesystem::path temp_file = temp_path("reflection_test_layout.h5");
+
+  ::testing::internal::CaptureStderr();
+  table.write(temp_file.string(), group);
+  std::string err = ::testing::internal::GetCapturedStderr();
+
+  bool warned = err.find("/dials/<process>/<group>") != std::string::npos;
+  EXPECT_EQ(warned, expect_warning)
+      << "Group '" << group << "': layout warning "
+      << (warned ? "raised" : "missing") << "; stderr was:\n"
+      << err;
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    GroupPaths, DialsLayoutWarningTest,
+    ::testing::Values(std::pair{std::string("/dials/processing/group_0"),
+                                false},
+                      std::pair{std::string("/dials/group_0"), true}));
+#pragma endregion
